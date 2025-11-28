@@ -65,7 +65,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 elseif($ENV{ROS_DISTRO} STREQUAL "humble")  # the ros2 humble requires c++17
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 else()
-add_definitions(-std=c++14)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 endif()
 
 add_compile_options(-Wall)
