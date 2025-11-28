@@ -3,20 +3,54 @@
 <package format="3">
   <name>go2_bringup</name>
   <version>1.0.0</version>
-  <description>Bringup package for Unitree Go2 with RealSense D435i and XT16 LiDAR</description>
+  <description>
+    Modular bringup package for Unitree Go2 robot.
+    Supports both hardware (real robot) and simulation (Gazebo) modes.
+    
+    Hardware mode: RealSense D435i camera, Hesai XT16 LiDAR, Unitree API control
+    Simulation mode: Gazebo Classic with simulated sensors and ros2_control
+  </description>
   <maintainer email="info@laelaps.ai">Laelaps AI</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <!-- Core ROS2 -->
   <exec_depend>ros2launch</exec_depend>
-  <exec_depend>realsense2_camera</exec_depend>
-  <exec_depend>velodyne</exec_depend>
-  <exec_depend>velodyne_pointcloud</exec_depend>
+  <exec_depend>xacro</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+
+  <!-- Hardware sensors -->
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>hesai_ros_driver</exec_depend>
+
+  <!-- Go2 packages -->
+  <exec_depend>go2_control</exec_depend>
   <exec_depend>go2_interfaces</exec_depend>
+  <exec_depend>go2_examples</exec_depend>
+  
+  <!-- Simulation packages -->
+  <exec_depend>go2_gazebo</exec_depend>
+  <exec_depend>go2_description</exec_depend>
+  <exec_depend>quadropted_controller</exec_depend>
+  <exec_depend>quadropted_msgs</exec_depend>
+  
+  <!-- Gazebo -->
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_ros_pkgs</exec_depend>
+  <exec_depend>gazebo_ros2_control</exec_depend>
+  
+  <!-- ros2_control -->
+  <exec_depend>ros2_control</exec_depend>
+  <exec_depend>ros2_controllers</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+
+  <!-- Teleoperation -->
+  <exec_depend>teleop_twist_keyboard</exec_depend>
+  <exec_depend>teleop_twist_joy</exec_depend>
+  <exec_depend>joy</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
@@ -25,4 +59,3 @@
     <build_type>ament_cmake</build_type>
   </export>
 </package>
-

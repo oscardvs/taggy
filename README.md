@@ -1,307 +1,173 @@
-# EDTH Hackathon - Unitree Go2 ROS2 Starter Pack
+# Unitree Go2 ROS2 Workspace
 
-**Organized by Laelaps AI**
+This workspace provides a **modular architecture** for the Unitree Go2 robot that supports both **hardware (real robot)** and **simulation (Gazebo)** modes.
 
-ROS2 Foxy starter pack for the EDTH Defense Tech Hackathon.
+## Quick Start
 
----
+### Hardware Mode (Real Robot)
+```bash
+# Source workspace
+source /home/user/ros2_ws/install/setup.bash
 
+# Launch with real robot (connect to Go2 via Ethernet first)
+ros2 launch go2_bringup full_bringup.launch.py
 
-## 📦 Package Overview
-
-```
-src/
-├── go2_bringup/        # Launch files and sensor configs
-├── go2_control/        # C++ velocity control node (SportClient API)
-├── go2_interfaces/     # Python utilities and message types
-├── go2_examples/       # Keyboard teleop for testing
-├── unitree_api/        # Unitree ROS2 message definitions
-└── unitree_go/         # Unitree Go2 message definitions
+# Or specify robot IP
+ros2 launch go2_bringup full_bringup.launch.py robot_ip:=192.168.123.161
 ```
 
----
+### Simulation Mode (Gazebo)
+```bash
+# Source workspace
+source /home/user/ros2_ws/install/setup.bash
 
-## 🚀 Quick Start
+# Launch simulation
+ros2 launch go2_bringup full_bringup.launch.py use_sim:=true
 
-### 1. Build the Workspace
+# With outdoor world and RViz
+ros2 launch go2_bringup full_bringup.launch.py use_sim:=true world:=outdoor enable_rviz:=true
+
+# Alternative: Direct Gazebo launch
+ros2 launch go2_gazebo gazebo.launch.py
+ros2 launch go2_bringup simulation.launch.py
+```
+
+### Teleoperation
+```bash
+# In a new terminal (works for both hardware and simulation)
+source /home/user/ros2_ws/install/setup.bash
+
+# Custom Go2 keyboard teleop (recommended)
+ros2 launch go2_bringup teleop.launch.py
+
+# Standard teleop_twist_keyboard
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+## Package Structure
+
+```
+ros2_ws/src/
+├── go2_bringup/          # Main launch files (modular hw/sim switching)
+├── go2_control/          # Hardware control (Unitree API bridge)
+├── go2_gazebo/           # Gazebo simulation package
+├── go2_description/      # Robot URDF, meshes, xacro (from go_sim_py)
+├── go2_examples/         # Examples including keyboard teleop
+├── go2_interfaces/       # SDK interfaces
+├── HesaiLidar_ROS_2.0/   # Hesai LiDAR driver (hardware)
+├── unitree_api/          # Unitree DDS messages
+├── unitree_go/           # Unitree Go2 messages
+├── go_sim_py/            # Quadruped controller (gait control)
+└── autonomy_stack_go2/   # Navigation, SLAM, path planning
+```
+
+## Key Topics
+
+| Topic | Type | Description |
+|-------|------|-------------|
+| `/cmd_vel` | `geometry_msgs/Twist` | Velocity commands |
+| `/scan` | `sensor_msgs/LaserScan` | LiDAR scan (2D) |
+| `/lidar_points` | `sensor_msgs/PointCloud2` | LiDAR pointcloud (3D) |
+| `/camera/color/image_raw` | `sensor_msgs/Image` | RGB camera |
+| `/camera/depth/image_rect_raw` | `sensor_msgs/Image` | Depth image |
+| `/imu/data` | `sensor_msgs/Imu` | IMU data |
+| `/joint_states` | `sensor_msgs/JointState` | Joint states |
+
+## Keyboard Teleop Controls
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║            UNITREE GO2 KEYBOARD TELEOPERATION                ║
+╠══════════════════════════════════════════════════════════════╣
+║   Movement:                     Rotation:                    ║
+║       W                             Q    E                   ║
+║     A   D                        (CCW)  (CW)                 ║
+║       S                                                      ║
+║                                                              ║
+║   Posture Commands:                                          ║
+║   1 - Stand Up          4 - Recovery (get up from fallen)   ║
+║   2 - Sit Down          5 - Hello (wave)                    ║
+║   3 - Balance Stand     6 - Stretch                         ║
+║                                                              ║
+║   Speed Control:        +/- : Increase/Decrease speed       ║
+║   SPACE : Stop          X : Emergency Stop   R : Release    ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+## Simulation Features
+
+- **Gazebo Classic (Gazebo 11)** - Compatible with ROS2 Foxy
+- **Simulated Sensors:**
+  - 2D/3D LiDAR (simulates Hesai XT16)
+  - RealSense D435i (RGB, Depth, IR, IMU)
+  - Body IMU
+- **ros2_control** with position controllers
+- **Quadruped gait controller** for walking
+
+## Launch Arguments
+
+### `full_bringup.launch.py`
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `use_sim` | `false` | Use simulation mode |
+| `robot_ip` | `192.168.123.161` | Robot IP (hardware mode) |
+| `world` | `empty` | Gazebo world: `empty`, `outdoor` |
+| `enable_camera` | `true` | Enable camera |
+| `enable_lidar` | `true` | Enable LiDAR |
+| `enable_rviz` | `false` | Launch RViz |
+
+### `gazebo.launch.py`
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `world` | `empty` | Gazebo world file |
+| `use_camera` | `true` | Simulated camera |
+| `use_lidar` | `true` | Simulated LiDAR |
+| `use_rviz` | `true` | Launch RViz |
+| `x`, `y`, `z` | `0, 0, 0.5` | Initial robot position |
+
+## Building
 
 ```bash
-cd ~/robot_ws/EDTH-ros2-starterpack
+cd /home/user/ros2_ws
+source /opt/ros/foxy/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-### 2. Launch Robot Control
+## Dependencies
 
+Install required packages:
 ```bash
-# Start the velocity control node
-ros2 launch go2_bringup go2_control.launch.py
+sudo apt update
+sudo apt install -y \
+  ros-foxy-gazebo-ros-pkgs \
+  ros-foxy-gazebo-ros2-control \
+  ros-foxy-ros2-control \
+  ros-foxy-ros2-controllers \
+  ros-foxy-xacro \
+  ros-foxy-joint-state-publisher \
+  ros-foxy-robot-state-publisher \
+  ros-foxy-teleop-twist-keyboard \
+  ros-foxy-teleop-twist-joy \
+  ros-foxy-joy \
+  ros-foxy-perception-pcl \
+  ros-foxy-pcl-ros
 ```
 
-### 3. Launch Sensors
+## Troubleshooting
 
-```bash
-# Launch both camera and LiDAR
-ros2 launch go2_bringup sensors.launch.py
+### Robot not responding to commands
+1. Ensure robot is in standing position (press `1` in teleop)
+2. Check `/cmd_vel` topic is publishing: `ros2 topic echo /cmd_vel`
+3. In simulation, wait for controllers to load (~5 seconds after spawn)
 
-# Launch camera only
-ros2 launch go2_bringup sensors.launch.py enable_lidar:=false
+### Gazebo crashes or hangs
+1. Try with empty world: `ros2 launch go2_gazebo gazebo.launch.py world:=empty`
+2. Reduce physics update rate if CPU limited
 
-# Launch LiDAR only
-ros2 launch go2_bringup sensors.launch.py enable_camera:=false
-
-# Launch with RViz visualization (requires display)
-ros2 launch go2_bringup sensors.launch.py enable_rviz:=true
-```
-
-### 4. Test with Keyboard Control
-
-```bash
-ros2 run go2_examples keyboard_teleop
-```
-
-**Keyboard Controls:**
-
-| Key | Action |
-|-----|--------|
-| `W/S` | Forward / Backward |
-| `A/D` | Strafe Left / Right |
-| `Q/E` | Rotate Left / Right |
-| `1` | Stand Up |
-| `2` | Sit Down |
-| `3` | Balance Stand |
-| `4` | Recovery Stand (get up from fallen) |
-| `5` | Hello (wave) |
-| `+/-` | Increase / Decrease speed |
-| `SPACE` | Stop movement |
-| `X` | Emergency Stop (disables motors!) |
-| `R` | Release emergency stop |
-| `ESC` | Quit |
+### No sensor data
+1. Check topics: `ros2 topic list | grep -E "scan|camera|imu"`
+2. In simulation, sensors publish under `/go2/` namespace
 
 ---
-
-## 🎮 Robot Control
-
-### Velocity Commands
-
-Send velocity commands to `/cmd_vel`:
-
-```python
-from geometry_msgs.msg import Twist
-
-cmd = Twist()
-cmd.linear.x = 0.5   # Forward (m/s), positive = forward
-cmd.linear.y = 0.0   # Strafe (m/s), positive = left
-cmd.angular.z = 0.3  # Rotation (rad/s), positive = counter-clockwise
-
-publisher.publish(cmd)
-```
-
-**Velocity Limits:**
-- Linear velocity: ±1.0 m/s (recommended: start with 0.3 m/s)
-- Angular velocity: ±1.0 rad/s
-
-### Posture Commands
-
-Send posture commands to `/cmd_posture`:
-
-```bash
-# Stand up
-ros2 topic pub /cmd_posture std_msgs/String "data: 'up'" --once
-
-# Sit down
-ros2 topic pub /cmd_posture std_msgs/String "data: 'down'" --once
-
-# Balance stand (active balancing)
-ros2 topic pub /cmd_posture std_msgs/String "data: 'balance'" --once
-
-# Recovery stand (get up from fallen)
-ros2 topic pub /cmd_posture std_msgs/String "data: 'recovery'" --once
-
-# Say hello (wave gesture)
-ros2 topic pub /cmd_posture std_msgs/String "data: 'hello'" --once
-```
-
-**Available posture commands:** `up`, `down`, `balance`, `recovery`, `sit`, `hello`, `stretch`, `stop`
-
-### Emergency Stop
-
-```bash
-# Activate emergency stop (disables motors!)
-ros2 topic pub /emergency_stop std_msgs/Bool "data: true" --once
-
-# Release emergency stop
-ros2 topic pub /emergency_stop std_msgs/Bool "data: false" --once
-```
-
----
-
-## 📡 ROS2 Topics
-
-### Control Topics
-
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/cmd_vel` | `geometry_msgs/Twist` | **Velocity commands (PUBLISH HERE)** |
-| `/cmd_posture` | `std_msgs/String` | Posture commands (up/down/balance/recovery) |
-| `/emergency_stop` | `std_msgs/Bool` | Emergency stop trigger |
-| `/api/sport/request` | `unitree_api/Request` | Raw Unitree API commands |
-
-### Camera (RealSense D435i)
-
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/camera/color/image_raw` | `sensor_msgs/Image` | RGB image (640x480 @ 30fps) |
-| `/camera/depth/image_rect_raw` | `sensor_msgs/Image` | Aligned depth image |
-| `/camera/depth/color/points` | `sensor_msgs/PointCloud2` | Colored point cloud |
-| `/camera/color/camera_info` | `sensor_msgs/CameraInfo` | Camera intrinsics |
-
-### LiDAR (Hesai XT16)
-
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/lidar_points` | `sensor_msgs/PointCloud2` | 3D point cloud (360°, ~300k points @ 10Hz) |
-| `/lidar_imu` | `sensor_msgs/Imu` | LiDAR built-in IMU |
-
-### TF Frames
-
-```
-base_link
- ├── camera_link
- │    └── camera_color_optical_frame
- └── hesai_lidar
-```
-
----
-
-## 🐍 Python Example
-
-```python
-#!/usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import Twist
-from std_msgs.msg import String, Bool
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-
-class MyPackage(Node):
-    def __init__(self):
-        super().__init__('my_package')
-        
-        self.bridge = CvBridge()
-        
-        # Publisher for velocity commands
-        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
-        
-        # Publisher for posture commands
-        self.posture_pub = self.create_publisher(String, '/cmd_posture', 10)
-        
-        # Publisher for emergency stop
-        self.estop_pub = self.create_publisher(Bool, '/emergency_stop', 10)
-        
-        # Subscriber for camera images
-        self.img_sub = self.create_subscription(
-            Image, '/camera/color/image_raw',
-            self.image_callback, 10
-        )
-        
-        # Stand up on start
-        self.posture_pub.publish(String(data='up'))
-    
-    def image_callback(self, msg):
-        # Convert ROS image to OpenCV
-        cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
-        
-        # TODO: Your object detection here!
-        # detected, x, y = detect_target(cv_image)
-        
-        # TODO: Your logic here!
-        cmd = Twist()
-        cmd.linear.x = 0.3  # Move forward
-        self.cmd_pub.publish(cmd)
-    
-    def emergency_stop(self):
-        """Call this if something goes wrong!"""
-        self.estop_pub.publish(Bool(data=True))
-        self.cmd_pub.publish(Twist())  # Zero velocity
-
-def main():
-    rclpy.init()
-    node = MyPackage()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
-if __name__ == '__main__':
-    main()
-```
-
----
-
-
-## 📁 Creating Your Package
-
-```bash
-cd ~/robot_ws/EDTH-ros2-starterpack/src
-ros2 pkg create --build-type ament_python my_package \
-    --dependencies rclpy geometry_msgs sensor_msgs cv_bridge std_msgs
-
-# Edit your code in my_package/my_package/
-# Then build:
-cd ~/robot_ws/EDTH-ros2-starterpack
-colcon build --packages-select my_package
-source install/setup.bash
-```
-
----
-
-## ⚠️ Safety
-
-1. **Always have someone ready to catch the robot**
-2. **Start with low speeds** (0.2-0.3 m/s)
-3. **Test in open areas first**
-4. **Know the emergency stop:**
-   ```bash
-   ros2 topic pub /emergency_stop std_msgs/Bool "data: true" --once
-   ```
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────┐     ┌──────────────────────┐
-│   Your Package      │     │    Keyboard Teleop   │
-│      Node           │     │                      │
-└─────────┬───────────┘     └──────────┬───────────┘
-          │                            │
-          │  /cmd_vel                  │  /cmd_vel
-          │  /cmd_posture              │
-          ▼                            ▼
-┌─────────────────────────────────────────────────────┐
-│                 go2_control_node                    │
-│  (Bridges ROS2 Twist to Unitree Sport API)          │
-└─────────────────────────┬───────────────────────────┘
-                          │
-                          │  /api/sport/request
-                          ▼
-┌─────────────────────────────────────────────────────┐
-│              Unitree Go2 Robot                      │
-│         (sport_mode service on-board)               │
-└─────────────────────────────────────────────────────┘
-```
-
----
-
-## 📚 Resources
-
-- [ROS2 Foxy Documentation](https://docs.ros.org/en/foxy/)
-- [RealSense ROS2](https://github.com/IntelRealSense/realsense-ros)
-- [Hesai LiDAR ROS2 Driver](https://github.com/HesaiTechnology/HesaiLidar_ROS_2.0)
-
----
-
-**Good luck! 🚀**
-
-*Laelaps AI - EDTH Defense Tech Hackathon*
+*Created by Laelaps AI*

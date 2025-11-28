@@ -1,0 +1,168 @@
+<?xml version="1.0"?>
+<robot name="go2" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================ -->
+  <!-- GO2 GAZEBO SIMULATION ROBOT                                  -->
+  <!-- Complete robot description with simulated sensors            -->
+  <!-- ============================================================ -->
+
+  <xacro:arg name="robot_name" default="go2"/>
+  <xacro:arg name="use_camera" default="true"/>
+  <xacro:arg name="use_lidar" default="true"/>
+  <xacro:arg name="DEBUG" default="false"/>
+
+  <!-- Include base Go2 description from go2_description package (go_sim_py) -->
+  <xacro:include filename="$(find go2_description)/xacro/const.xacro"/>
+  <xacro:include filename="$(find go2_description)/xacro/leg.xacro"/>
+  
+  <!-- Define materials if not in separate file -->
+  <material name="black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+  <material name="orange">
+    <color rgba="1.0 0.42 0.04 1.0"/>
+  </material>
+  <material name="gray">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+  
+  <!-- Include Gazebo Classic plugins and sensors -->
+  <xacro:include filename="$(find go2_gazebo)/xacro/gazebo_classic.xacro"/>
+  <xacro:include filename="$(find go2_gazebo)/xacro/realsense_d435_sim.xacro"/>
+
+  <!-- Apply Gazebo plugins -->
+  <xacro:go2_gazebo_classic robot_name="$(arg robot_name)"/>
+
+  <!-- Add RealSense camera if enabled -->
+  <xacro:if value="$(arg use_camera)">
+    <xacro:realsense_d435_sim 
+      robot_name="$(arg robot_name)" 
+      parent_link="base_link" 
+      camera_name="camera"/>
+  </xacro:if>
+
+  <!-- Debug mode - fix robot in space -->
+  <xacro:if value="$(arg DEBUG)">
+    <link name="world"/>
+    <joint name="base_static_joint" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <parent link="world"/>
+      <child link="base_link"/>
+    </joint>
+  </xacro:if>
+
+  <!-- ============================================================ -->
+  <!-- BASE LINK                                                    -->
+  <!-- ============================================================ -->
+  <link name="base_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="floating_base" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="trunk"/>
+  </joint>
+
+  <!-- ============================================================ -->
+  <!-- TRUNK (Robot Body)                                           -->
+  <!-- ============================================================ -->
+  <link name="trunk">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find go2_description)/meshes/trunk.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="${trunk_length} ${trunk_width} ${trunk_height}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="${trunk_com_x} ${trunk_com_y} ${trunk_com_z}"/>
+      <mass value="${trunk_mass}"/>
+      <inertia
+        ixx="${trunk_ixx}" ixy="${trunk_ixy}" ixz="${trunk_ixz}"
+        iyy="${trunk_iyy}" iyz="${trunk_iyz}"
+        izz="${trunk_izz}"/>
+    </inertial>
+  </link>
+
+  <!-- ============================================================ -->
+  <!-- LIDAR FRAME                                                  -->
+  <!-- ============================================================ -->
+  <joint name="laser_scan_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser_frame"/>
+    <!-- Position based on Hesai XT16 mount position -->
+    <origin xyz="0.171 0.0 0.0908" rpy="0 0 0"/>
+  </joint>
+
+  <link name="laser_frame">
+    <inertial>
+      <mass value="0.1"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.05" radius="0.04"/>
+      </geometry>
+      <material name="dark_gray">
+        <color rgba="0.2 0.2 0.2 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.05" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ============================================================ -->
+  <!-- IMU LINK                                                     -->
+  <!-- ============================================================ -->
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.001"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <!-- ============================================================ -->
+  <!-- FOOTPRINT LINK (for navigation)                              -->
+  <!-- ============================================================ -->
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="base_footprint"/>
+    <origin xyz="0 0 -0.3" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_footprint"/>
+
+  <!-- ============================================================ -->
+  <!-- LEGS                                                         -->
+  <!-- ============================================================ -->
+  <xacro:leg name="rf" mirror="-1" mirror_dae="False" front_hind="1" front_hind_dae="True"/>
+  <xacro:leg name="lf" mirror="1" mirror_dae="True" front_hind="1" front_hind_dae="True"/>
+  <xacro:leg name="rh" mirror="-1" mirror_dae="False" front_hind="-1" front_hind_dae="False"/>
+  <xacro:leg name="lh" mirror="1" mirror_dae="True" front_hind="-1" front_hind_dae="False"/>
+
+</robot>
+

@@ -1,0 +1,54 @@
+# ROS2 Controllers Configuration for Go2 Gazebo Simulation
+# Joint order matches quadropted_controller IK output: FR, FL, RR, RL (rf, lf, rh, lh)
+
+controller_manager:
+  ros__parameters:
+    update_rate: 500  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    joint_group_position_controller:
+      type: position_controllers/JointGroupPositionController
+
+joint_state_broadcaster:
+  ros__parameters:
+    joints:
+      # Order: FR, FL, RR, RL (rf, lf, rh, lh)
+      - rf_hip_joint
+      - rf_upper_leg_joint
+      - rf_lower_leg_joint
+      - lf_hip_joint
+      - lf_upper_leg_joint
+      - lf_lower_leg_joint
+      - rh_hip_joint
+      - rh_upper_leg_joint
+      - rh_lower_leg_joint
+      - lh_hip_joint
+      - lh_upper_leg_joint
+      - lh_lower_leg_joint
+
+joint_group_position_controller:
+  ros__parameters:
+    # Order: FR, FL, RR, RL (rf, lf, rh, lh)
+    joints:
+      - rf_hip_joint
+      - rf_upper_leg_joint
+      - rf_lower_leg_joint
+      - lf_hip_joint
+      - lf_upper_leg_joint
+      - lf_lower_leg_joint
+      - rh_hip_joint
+      - rh_upper_leg_joint
+      - rh_lower_leg_joint
+      - lh_hip_joint
+      - lh_upper_leg_joint
+      - lh_lower_leg_joint
+
+    command_interfaces:
+      - position
+
+    state_interfaces:
+      - position
+      - velocity
+
