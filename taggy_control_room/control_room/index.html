@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAGGY Command Center | Perimeter Defense System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-red: #ff2d2d;
+            --primary-red-dim: #8b1a1a;
+            --accent-cyan: #00fff2;
+            --accent-cyan-dim: #007a75;
+            --warning-yellow: #ffd700;
+            --success-green: #00ff6a;
+            --bg-dark: #0a0a0f;
+            --bg-panel: #12121a;
+            --bg-panel-light: #1a1a25;
+            --border-color: #2a2a3a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888899;
+            --grid-color: rgba(0, 255, 242, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .header {
+            background: linear-gradient(180deg, var(--bg-panel) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            opacity: 0.5;
+        }
+
+        .logo { display: flex; align-items: center; gap: 15px; }
+
+        .logo-icon {
+            width: 50px; height: 50px;
+            background: var(--accent-cyan);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex; align-items: center; justify-content: center;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px var(--accent-cyan-dim); }
+            50% { box-shadow: 0 0 40px var(--accent-cyan); }
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem; font-weight: 900; letter-spacing: 4px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--text-primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 2px;
+        }
+
+        .status-bar { display: flex; gap: 30px; align-items: center; }
+
+        .status-item {
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        .status-dot.green { background: var(--success-green); box-shadow: 0 0 10px var(--success-green); }
+        .status-dot.red { background: var(--primary-red); box-shadow: 0 0 10px var(--primary-red); }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .datetime {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem; color: var(--accent-cyan);
+            text-shadow: 0 0 10px var(--accent-cyan-dim);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 20px; padding: 20px;
+            height: calc(100vh - 90px);
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px; overflow: hidden;
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--primary-red));
+        }
+
+        .panel-header {
+            background: var(--bg-panel-light);
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem; font-weight: 700; letter-spacing: 2px;
+            color: var(--accent-cyan); text-transform: uppercase;
+        }
+
+        .panel-content {
+            padding: 15px;
+            height: calc(100% - 50px);
+            overflow-y: auto;
+        }
+
+        .robot-card {
+            background: var(--bg-panel-light);
+            border: 1px solid var(--border-color);
+            border-radius: 6px; padding: 12px; margin-bottom: 10px;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+
+        .robot-card:hover { border-color: var(--accent-cyan); box-shadow: 0 0 15px rgba(0,255,242,0.2); }
+        .robot-card.active { border-color: var(--success-green); box-shadow: 0 0 15px rgba(0,255,106,0.3); }
+        .robot-card.alert {
+            border-color: var(--primary-red);
+            box-shadow: 0 0 15px rgba(255,45,45,0.3);
+            animation: alert-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes alert-pulse {
+            0%, 100% { background: var(--bg-panel-light); }
+            50% { background: rgba(255,45,45,0.1); }
+        }
+
+        .robot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .robot-name { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: 600; }
+
+        .robot-status {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; padding: 3px 8px; border-radius: 3px; text-transform: uppercase;
+        }
+
+        .robot-status.online { background: rgba(0,255,106,0.2); color: var(--success-green); }
+        .robot-status.patrol { background: rgba(0,255,242,0.2); color: var(--accent-cyan); }
+        .robot-status.alert { background: rgba(255,45,45,0.2); color: var(--primary-red); }
+
+        .robot-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); }
+        .robot-stat { display: flex; justify-content: space-between; }
+        .robot-stat-value { color: var(--text-primary); font-family: 'Share Tech Mono', monospace; }
+
+        .map-container { position: relative; height: 100%; background: var(--bg-dark); border-radius: 4px; overflow: hidden; }
+
+        .map-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 30% 40%, rgba(0,255,106,0.1) 0%, transparent 30%),
+                        radial-gradient(circle at 70% 60%, rgba(0,255,242,0.1) 0%, transparent 30%);
+        }
+
+        .perimeter {
+            position: absolute;
+            top: 10%; left: 10%; width: 80%; height: 80%;
+            border: 2px dashed var(--accent-cyan-dim);
+            border-radius: 8px; opacity: 0.6;
+        }
+
+        .zone-label {
+            position: absolute;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; color: var(--text-secondary);
+            padding: 3px 8px; background: rgba(0,0,0,0.5); border-radius: 3px;
+        }
+
+        .robot-marker {
+            position: absolute; width: 20px; height: 20px;
+            background: var(--success-green); border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px var(--success-green);
+            cursor: pointer; transition: all 0.3s ease;
+        }
+
+        .robot-marker::after {
+            content: '';
+            position: absolute; top: -5px; left: -5px; width: 30px; height: 30px;
+            border: 2px solid var(--success-green); border-radius: 50%;
+            animation: radar 2s ease-out infinite;
+        }
+
+        @keyframes radar { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+
+        .threat-marker {
+            position: absolute; width: 24px; height: 24px;
+            background: var(--primary-red);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px var(--primary-red);
+            animation: threat-blink 0.5s ease-in-out infinite;
+            cursor: pointer; display: none;
+        }
+
+        .threat-marker.active { display: block; }
+
+        @keyframes threat-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .alert-banner {
+            display: none;
+            background: linear-gradient(90deg, var(--primary-red-dim), var(--primary-red), var(--primary-red-dim));
+            padding: 15px; text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem; font-weight: 700; letter-spacing: 3px;
+            animation: alert-flash 1s ease-in-out infinite;
+            border-radius: 4px; margin-bottom: 15px;
+        }
+
+        .alert-banner.active { display: block; }
+
+        @keyframes alert-flash {
+            0%, 100% { background: linear-gradient(90deg, var(--primary-red-dim), var(--primary-red), var(--primary-red-dim)); }
+            50% { background: var(--primary-red); }
+        }
+
+        .threat-info {
+            display: none;
+            background: rgba(255,45,45,0.1);
+            border: 1px solid var(--primary-red);
+            border-radius: 6px; padding: 15px; margin-bottom: 15px;
+        }
+
+        .threat-info.active { display: block; }
+
+        .threat-image {
+            width: 100%; height: 150px;
+            background: var(--bg-dark); border-radius: 4px;
+            margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid var(--border-color);
+        }
+
+        .threat-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        .threat-details { font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; }
+        .threat-details p { margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .threat-details .label { color: var(--text-secondary); }
+        .threat-details .value { color: var(--primary-red); }
+
+        .voice-control {
+            background: var(--bg-panel-light);
+            border: 1px solid var(--border-color);
+            border-radius: 6px; padding: 15px; margin-bottom: 15px;
+        }
+
+        .voice-btn {
+            width: 100%; padding: 15px;
+            background: linear-gradient(135deg, var(--accent-cyan-dim), var(--accent-cyan));
+            border: none; border-radius: 6px; color: var(--bg-dark);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem; font-weight: 700; letter-spacing: 2px;
+            cursor: pointer; transition: all 0.3s ease;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
+        .voice-btn:hover { box-shadow: 0 0 30px var(--accent-cyan); transform: translateY(-2px); }
+
+        .voice-btn.listening {
+            background: linear-gradient(135deg, var(--primary-red-dim), var(--primary-red));
+            animation: listening-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes listening-pulse {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-red-dim); }
+            50% { box-shadow: 0 0 40px var(--primary-red); }
+        }
+
+        .voice-icon { width: 24px; height: 24px; }
+
+        .voice-transcript {
+            margin-top: 10px; padding: 10px;
+            background: var(--bg-dark); border-radius: 4px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem; color: var(--text-secondary);
+            min-height: 60px;
+        }
+
+        .voice-transcript.active { color: var(--accent-cyan); border: 1px solid var(--accent-cyan-dim); }
+
+        .mock-controls {
+            background: var(--bg-panel-light);
+            border: 1px solid var(--border-color);
+            border-radius: 6px; padding: 15px;
+        }
+
+        .mock-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem; color: var(--warning-yellow);
+            margin-bottom: 10px; letter-spacing: 1px;
+        }
+
+        .mock-btn {
+            width: 100%; padding: 12px;
+            background: transparent;
+            border: 1px solid var(--primary-red);
+            border-radius: 4px; color: var(--primary-red);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease;
+            margin-bottom: 8px;
+        }
+
+        .mock-btn:hover { background: rgba(255,45,45,0.2); box-shadow: 0 0 15px rgba(255,45,45,0.3); }
+        .mock-btn:last-child { margin-bottom: 0; }
+
+        .clear-btn { border-color: var(--success-green); color: var(--success-green); }
+        .clear-btn:hover { background: rgba(0,255,106,0.2); box-shadow: 0 0 15px rgba(0,255,106,0.3); }
+
+        .log-entry {
+            padding: 8px; border-bottom: 1px solid var(--border-color);
+            font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+        }
+
+        .log-entry:last-child { border-bottom: none; }
+        .log-time { color: var(--text-secondary); margin-right: 10px; }
+        .log-message { color: var(--text-primary); }
+        .log-message.alert { color: var(--primary-red); }
+        .log-message.info { color: var(--accent-cyan); }
+        .log-message.success { color: var(--success-green); }
+
+        .video-feed {
+            position: relative; background: var(--bg-dark);
+            height: 200px; border-radius: 4px; margin-bottom: 15px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid var(--border-color);
+        }
+
+        .video-feed img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        .video-overlay {
+            position: absolute; top: 10px; left: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; color: var(--primary-red);
+            background: rgba(0,0,0,0.7); padding: 3px 8px; border-radius: 3px;
+        }
+
+        .no-feed { color: var(--text-secondary); font-family: 'Share Tech Mono', monospace; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan-dim); }
+
+        .connection-status {
+            position: fixed; bottom: 20px; right: 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px; padding: 10px 15px;
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+            z-index: 1000;
+        }
+
+        .connection-status.connected { border-color: var(--success-green); }
+        .connection-status.disconnected { border-color: var(--primary-red); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0a0f" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>
+                </svg>
+            </div>
+            <div>
+                <div class="logo-text">TAGGY</div>
+                <div class="logo-subtitle">PERIMETER DEFENSE SYSTEM v2.0</div>
+            </div>
+        </div>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-dot green" id="systemStatus"></span>
+                <span>SYSTEM ONLINE</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot green" id="rosStatus"></span>
+                <span id="rosStatusText">ROS CONNECTED</span>
+            </div>
+            <div class="datetime" id="datetime"></div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <aside class="panel">
+            <div class="panel-header">
+                <span class="panel-title">🤖 Robot Units</span>
+                <span style="font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--success-green);">4 ACTIVE</span>
+            </div>
+            <div class="panel-content">
+                <div class="robot-card active" data-id="GO2-001">
+                    <div class="robot-header">
+                        <span class="robot-name">GO2-ALPHA</span>
+                        <span class="robot-status patrol">PATROL</span>
+                    </div>
+                    <div class="robot-stats">
+                        <div class="robot-stat"><span>Battery</span><span class="robot-stat-value">87%</span></div>
+                        <div class="robot-stat"><span>Position</span><span class="robot-stat-value">N-12</span></div>
+                        <div class="robot-stat"><span>Speed</span><span class="robot-stat-value">1.2 m/s</span></div>
+                        <div class="robot-stat"><span>Uptime</span><span class="robot-stat-value">4h 23m</span></div>
+                    </div>
+                </div>
+                <div class="robot-card" data-id="GO2-002">
+                    <div class="robot-header">
+                        <span class="robot-name">GO2-BRAVO</span>
+                        <span class="robot-status online">STANDBY</span>
+                    </div>
+                    <div class="robot-stats">
+                        <div class="robot-stat"><span>Battery</span><span class="robot-stat-value">95%</span></div>
+                        <div class="robot-stat"><span>Position</span><span class="robot-stat-value">S-04</span></div>
+                        <div class="robot-stat"><span>Speed</span><span class="robot-stat-value">0.0 m/s</span></div>
+                        <div class="robot-stat"><span>Uptime</span><span class="robot-stat-value">2h 15m</span></div>
+                    </div>
+                </div>
+                <div class="robot-card" data-id="GO2-003">
+                    <div class="robot-header">
+                        <span class="robot-name">GO2-CHARLIE</span>
+                        <span class="robot-status patrol">PATROL</span>
+                    </div>
+                    <div class="robot-stats">
+                        <div class="robot-stat"><span>Battery</span><span class="robot-stat-value">72%</span></div>
+                        <div class="robot-stat"><span>Position</span><span class="robot-stat-value">E-08</span></div>
+                        <div class="robot-stat"><span>Speed</span><span class="robot-stat-value">0.8 m/s</span></div>
+                        <div class="robot-stat"><span>Uptime</span><span class="robot-stat-value">6h 45m</span></div>
+                    </div>
+                </div>
+                <div class="robot-card" data-id="GO2-004">
+                    <div class="robot-header">
+                        <span class="robot-name">GO2-DELTA</span>
+                        <span class="robot-status online">STANDBY</span>
+                    </div>
+                    <div class="robot-stats">
+                        <div class="robot-stat"><span>Battery</span><span class="robot-stat-value">100%</span></div>
+                        <div class="robot-stat"><span>Position</span><span class="robot-stat-value">W-01</span></div>
+                        <div class="robot-stat"><span>Speed</span><span class="robot-stat-value">0.0 m/s</span></div>
+                        <div class="robot-stat"><span>Uptime</span><span class="robot-stat-value">0h 30m</span></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="panel">
+            <div class="panel-header">
+                <span class="panel-title">📡 Tactical Map - Zone Alpha</span>
+                <span style="font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-secondary);">REAL-TIME</span>
+            </div>
+            <div class="panel-content" style="padding: 0; height: calc(100% - 50px);">
+                <div class="map-container">
+                    <div class="map-overlay"></div>
+                    <div class="perimeter"></div>
+                    <span class="zone-label" style="top: 5%; left: 45%;">NORTH GATE</span>
+                    <span class="zone-label" style="bottom: 5%; left: 45%;">SOUTH GATE</span>
+                    <span class="zone-label" style="top: 45%; left: 2%;">WEST FENCE</span>
+                    <span class="zone-label" style="top: 45%; right: 2%;">EAST FENCE</span>
+                    <span class="zone-label" style="top: 45%; left: 42%; background: rgba(0,255,242,0.2); color: var(--accent-cyan);">HQ BUILDING</span>
+                    <div class="robot-marker" style="top: 25%; left: 30%;" title="GO2-ALPHA"></div>
+                    <div class="robot-marker" style="top: 70%; left: 25%;" title="GO2-BRAVO"></div>
+                    <div class="robot-marker" style="top: 40%; left: 75%;" title="GO2-CHARLIE"></div>
+                    <div class="robot-marker" style="top: 60%; left: 15%;" title="GO2-DELTA"></div>
+                    <div class="threat-marker" id="threatMarker" style="top: 20%; left: 60%;"></div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <div class="panel-header">
+                <span class="panel-title">⚡ Command Center</span>
+            </div>
+            <div class="panel-content">
+                <div class="alert-banner" id="alertBanner">⚠️ THREAT DETECTED ⚠️</div>
+
+                <div class="threat-info" id="threatInfo">
+                    <div class="threat-image" id="threatImage"><span class="no-feed">NO THREAT IMAGE</span></div>
+                    <div class="threat-details">
+                        <p><span class="label">TYPE:</span> <span class="value" id="threatType">UNKNOWN</span></p>
+                        <p><span class="label">LOCATION:</span> <span class="value" id="threatLocation">N/A</span></p>
+                        <p><span class="label">DETECTED:</span> <span class="value" id="threatTime">--:--:--</span></p>
+                        <p><span class="label">CONFIDENCE:</span> <span class="value" id="threatConfidence">0%</span></p>
+                    </div>
+                </div>
+
+                <div class="voice-control">
+                    <button class="voice-btn" id="voiceBtn">
+                        <svg class="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <span id="voiceBtnText">VOICE COMMAND</span>
+                    </button>
+                    <div class="voice-transcript" id="voiceTranscript">Awaiting voice command...</div>
+                </div>
+
+                <div class="video-feed" id="videoFeed">
+                    <span class="no-feed">TRACKER FEED OFFLINE</span>
+                    <div class="video-overlay" id="videoOverlay" style="display: none;">● REC</div>
+                </div>
+
+                <div class="mock-controls">
+                    <div class="mock-title">⚙️ SIMULATION CONTROLS</div>
+                    <button class="mock-btn" onclick="mockInvasion('person')">🚶 SIMULATE SOLDIER INVASION</button>
+                    <button class="mock-btn" onclick="mockInvasion('dog')">🐕 SIMULATE DOG INVASION</button>
+                    <button class="mock-btn" onclick="mockInvasion('car')">🚗 SIMULATE VEHICLE INVASION</button>
+                    <button class="mock-btn clear-btn" onclick="clearAlert()">✓ CLEAR ALERT</button>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <div class="mock-title">📋 ACTIVITY LOG</div>
+                    <div id="activityLog" style="max-height: 150px; overflow-y: auto; background: var(--bg-dark); border-radius: 4px; padding: 5px;">
+                        <div class="log-entry"><span class="log-time">16:45:23</span><span class="log-message info">System initialized</span></div>
+                        <div class="log-entry"><span class="log-time">16:45:24</span><span class="log-message success">GO2-ALPHA patrol started</span></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <div class="connection-status disconnected" id="connectionStatus">
+        <span class="status-dot red" id="connDot"></span>
+        <span id="connText">ROS DISCONNECTED</span>
+    </div>
+
+    <script>
+        const CONFIG = { rosbridge_url: 'ws://localhost:9090', topics: { target_object: '/mission/target_object' } };
+
+        const THREAT_MAPPING = {
+            'soldier': 'person', 'enemy': 'person', 'person': 'person', 'intruder': 'person',
+            'dog': 'dog', 'canine': 'dog', 'vehicle': 'car', 'car': 'car', 'truck': 'truck',
+            'drone': 'airplane', 'aircraft': 'airplane'
+        };
+
+        let ros = null, targetPublisher = null, isConnected = false, isListening = false, recognition = null;
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('datetime').textContent = now.toLocaleString('en-US', {
+                weekday: 'short', year: 'numeric', month: 'short', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            }).toUpperCase();
+        }
+        setInterval(updateDateTime, 1000); updateDateTime();
+
+        function connectToROS() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js';
+            script.onload = initROS;
+            script.onerror = () => updateConnectionStatus(false);
+            document.head.appendChild(script);
+        }
+
+        function initROS() {
+            ros = new ROSLIB.Ros({ url: CONFIG.rosbridge_url });
+            ros.on('connection', () => { isConnected = true; updateConnectionStatus(true); setupPublishers(); addLog('ROS connected', 'success'); });
+            ros.on('error', () => updateConnectionStatus(false));
+            ros.on('close', () => { isConnected = false; updateConnectionStatus(false); addLog('ROS disconnected', 'alert'); setTimeout(initROS, 3000); });
+        }
+
+        function setupPublishers() {
+            targetPublisher = new ROSLIB.Topic({ ros, name: CONFIG.topics.target_object, messageType: 'std_msgs/String' });
+        }
+
+        function updateConnectionStatus(connected) {
+            document.getElementById('connectionStatus').className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+            document.getElementById('connDot').className = 'status-dot ' + (connected ? 'green' : 'red');
+            document.getElementById('connText').textContent = connected ? 'ROS CONNECTED' : 'ROS DISCONNECTED';
+            document.getElementById('rosStatus').className = 'status-dot ' + (connected ? 'green' : 'red');
+            document.getElementById('rosStatusText').textContent = connected ? 'ROS CONNECTED' : 'ROS DISCONNECTED';
+        }
+
+        function publishTarget(threatClass) {
+            if (targetPublisher && isConnected) {
+                targetPublisher.publish(new ROSLIB.Message({ data: threatClass }));
+                addLog(`Target published: ${threatClass}`, 'info');
+            } else {
+                addLog(`[DEMO] Target: ${threatClass}`, 'info');
+            }
+        }
+
+        function initVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                document.getElementById('voiceBtn').disabled = true;
+                document.getElementById('voiceBtnText').textContent = 'VOICE NOT SUPPORTED';
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('voiceBtn').classList.add('listening');
+                document.getElementById('voiceBtnText').textContent = 'LISTENING...';
+                document.getElementById('voiceTranscript').classList.add('active');
+                document.getElementById('voiceTranscript').textContent = 'Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
+                document.getElementById('voiceTranscript').textContent = transcript;
+                if (event.results[event.resultIndex].isFinal) processVoiceCommand(transcript.toLowerCase());
+            };
+
+            recognition.onerror = () => stopListening();
+            recognition.onend = () => stopListening();
+        }
+
+        function startListening() { if (recognition && !isListening) recognition.start(); }
+        function stopListening() {
+            isListening = false;
+            document.getElementById('voiceBtn').classList.remove('listening');
+            document.getElementById('voiceBtnText').textContent = 'VOICE COMMAND';
+            document.getElementById('voiceTranscript').classList.remove('active');
+        }
+
+        function processVoiceCommand(command) {
+            addLog(`Command: "${command}"`, 'info');
+            let detectedThreat = null;
+            for (const [keyword, cocoClass] of Object.entries(THREAT_MAPPING)) {
+                if (command.includes(keyword)) { detectedThreat = cocoClass; break; }
+            }
+            if (detectedThreat) {
+                addLog(`Threat: ${detectedThreat}`, 'success');
+                publishTarget(detectedThreat);
+                document.getElementById('voiceTranscript').innerHTML = `✓ Target: <strong>${detectedThreat.toUpperCase()}</strong>`;
+                if (command.includes('intercept') || command.includes('engage') || command.includes('track')) mockInvasion(detectedThreat);
+            } else {
+                document.getElementById('voiceTranscript').innerHTML = `⚠ Could not identify threat`;
+            }
+        }
+
+        function mockInvasion(threatType) {
+            document.getElementById('alertBanner').classList.add('active');
+            document.getElementById('threatInfo').classList.add('active');
+            document.getElementById('threatMarker').classList.add('active');
+
+            const threatNames = { 'person': 'HOSTILE SOLDIER', 'dog': 'ENEMY K-9 UNIT', 'car': 'ENEMY VEHICLE' };
+            document.getElementById('threatType').textContent = threatNames[threatType] || threatType.toUpperCase();
+            document.getElementById('threatLocation').textContent = 'SECTOR N-12';
+            document.getElementById('threatTime').textContent = new Date().toLocaleTimeString();
+            document.getElementById('threatConfidence').textContent = Math.floor(85 + Math.random() * 14) + '%';
+
+            const images = {
+                'person': 'https://images.unsplash.com/photo-1553697388-94e804e2f0f6?w=300&h=200&fit=crop',
+                'dog': 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=300&h=200&fit=crop',
+                'car': 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&h=200&fit=crop'
+            };
+            if (images[threatType]) document.getElementById('threatImage').innerHTML = `<img src="${images[threatType]}" alt="Threat">`;
+
+            document.querySelector('.robot-card.active').classList.add('alert');
+            document.querySelector('.robot-card.active .robot-status').textContent = 'ALERT';
+            document.querySelector('.robot-card.active .robot-status').className = 'robot-status alert';
+
+            addLog(`⚠️ THREAT: ${threatNames[threatType] || threatType}`, 'alert');
+            publishTarget(threatType);
+            playAlertSound();
+        }
+
+        function clearAlert() {
+            document.getElementById('alertBanner').classList.remove('active');
+            document.getElementById('threatInfo').classList.remove('active');
+            document.getElementById('threatMarker').classList.remove('active');
+            const alertCard = document.querySelector('.robot-card.alert');
+            if (alertCard) {
+                alertCard.classList.remove('alert');
+                alertCard.querySelector('.robot-status').textContent = 'PATROL';
+                alertCard.querySelector('.robot-status').className = 'robot-status patrol';
+            }
+            document.getElementById('threatImage').innerHTML = '<span class="no-feed">NO THREAT IMAGE</span>';
+            addLog('Alert cleared', 'success');
+        }
+
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString('en-US', { hour12: false })}</span><span class="log-message ${type}">${message}</span>`;
+            log.insertBefore(entry, log.firstChild);
+            while (log.children.length > 50) log.removeChild(log.lastChild);
+        }
+
+        function playAlertSound() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 800; osc.type = 'square'; gain.gain.value = 0.1;
+            osc.start();
+            setTimeout(() => osc.frequency.value = 600, 200);
+            setTimeout(() => osc.stop(), 400);
+        }
+
+        document.getElementById('voiceBtn').addEventListener('click', () => { isListening ? recognition.stop() : startListening(); });
+        document.querySelectorAll('.robot-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.robot-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                addLog(`Selected: ${card.querySelector('.robot-name').textContent}`, 'info');
+            });
+        });
+
+        window.onload = () => { initVoiceRecognition(); connectToROS(); addLog('Control Center initialized', 'success'); };
+    </script>
+</body>
+</html>
