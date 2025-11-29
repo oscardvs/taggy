@@ -11,6 +11,9 @@ tracker:
     depth_topic: "/camera/aligned_depth_to_color/image_raw"
     camera_info_topic: "/camera_info"
 
+    # Topic to receive dynamic target updates (std_msgs/String)
+    target_object_topic: "/mission/target_object"
+
     # -------------------------------------------------------------------------
     # THREAT IDENTIFICATION
     # -------------------------------------------------------------------------
