@@ -6,14 +6,14 @@ Launches only the voice_command_node for testing on a laptop without the
 full mission stack. Useful for development and debugging.
 
 Usage:
-    ros2 launch go2_mission voice_command.launch.py
+    ros2 launch go2_voice voice_command.launch.py
 
     # With custom model path
-    ros2 launch go2_mission voice_command.launch.py \
+    ros2 launch go2_voice voice_command.launch.py \
         model_path:=/home/user/vosk-models/vosk-model-small-en-us-0.15
 
     # With USB microphone (PyAudio device)
-    ros2 launch go2_mission voice_command.launch.py use_pyaudio:=true
+    ros2 launch go2_voice voice_command.launch.py use_pyaudio:=true
 
 Testing:
     # Simulate LISTENING state
@@ -24,9 +24,8 @@ Testing:
 """
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PythonExpression, EnvironmentVariable
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -34,10 +33,10 @@ import os
 
 def generate_launch_description():
     # Get package directory
-    go2_mission_dir = get_package_share_directory('go2_mission')
+    go2_voice_dir = get_package_share_directory('go2_voice')
 
     # Config file path
-    vosk_params_file = os.path.join(go2_mission_dir, 'config', 'vosk_params.yaml')
+    vosk_params_file = os.path.join(go2_voice_dir, 'config', 'vosk_params.yaml')
 
     # ============================================================
     # LAUNCH ARGUMENTS
@@ -71,7 +70,7 @@ def generate_launch_description():
     # ============================================================
     # Note: Parameters are merged in order - dict parameters override YAML
     voice_command_node = Node(
-        package='go2_mission',
+        package='go2_voice',
         executable='voice_command_node.py',
         name='voice_command_node',
         output='screen',
@@ -88,22 +87,6 @@ def generate_launch_description():
         ],
     )
 
-    # ============================================================
-    # MOCK STATE PUBLISHER (for standalone testing)
-    # ============================================================
-    # Publishes LISTENING state so voice_command_node processes audio
-    mock_state_node = Node(
-        package='ros2cli',
-        executable='ros2',
-        name='mock_state_publisher',
-        output='screen',
-        arguments=[
-            'topic', 'pub', '--once',
-            '/mission/state', 'std_msgs/msg/String',
-            '{data: "LISTENING"}'
-        ],
-    )
-
     return LaunchDescription([
         # Arguments
         use_sim_time_arg,
@@ -114,4 +97,3 @@ def generate_launch_description():
         # Voice Command Node
         voice_command_node,
     ])
-

@@ -82,12 +82,7 @@ install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-# Install Python scripts
-install(PROGRAMS
-  scripts/voice_command_node.py
-  scripts/test_voice_command.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+# No Python scripts to install (voice command moved to go2_voice package)
 
 ament_package()
 

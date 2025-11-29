@@ -25,7 +25,10 @@ def generate_launch_description():
 
     # Config file paths
     mission_params_file = os.path.join(go2_mission_dir, 'config', 'mission_params.yaml')
-    vosk_params_file = os.path.join(go2_mission_dir, 'config', 'vosk_params.yaml')
+    
+    # Voice command config is in go2_voice package
+    go2_voice_dir = get_package_share_directory('go2_voice')
+    vosk_params_file = os.path.join(go2_voice_dir, 'config', 'vosk_params.yaml')
 
     # ============================================================
     # LAUNCH ARGUMENTS
@@ -126,7 +129,7 @@ def generate_launch_description():
     #   /mission/target_object - Recognized target object keyword
     # ============================================================
     voice_command_node = Node(
-        package='go2_mission',
+        package='go2_voice',
         executable='voice_command_node.py',
         name='voice_command_node',
         output='screen',
