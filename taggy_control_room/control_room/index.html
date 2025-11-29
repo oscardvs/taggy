@@ -327,6 +327,130 @@
 
         .voice-transcript.active { color: var(--accent-cyan); border: 1px solid var(--accent-cyan-dim); }
 
+        /* Video Feed Styles */
+        .video-feed {
+            position: relative; 
+            background: var(--bg-dark);
+            height: 200px; 
+            border-radius: 4px; 
+            margin-bottom: 15px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            overflow: hidden; 
+            border: 1px solid var(--border-color);
+        }
+
+        .video-feed img {
+            max-width: 100%; 
+            max-height: 100%; 
+            object-fit: contain;
+        }
+
+        .video-feed.connected {
+            border-color: var(--success-green);
+            box-shadow: 0 0 10px rgba(0, 255, 106, 0.2);
+        }
+
+        .video-overlay {
+            position: absolute; 
+            top: 10px; 
+            left: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; 
+            color: var(--success-green);
+            background: rgba(0,0,0,0.7); 
+            padding: 3px 8px; 
+            border-radius: 3px;
+            display: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .video-overlay .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success-green);
+            border-radius: 50%;
+            animation: live-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 5px var(--success-green); }
+            50% { opacity: 0.5; box-shadow: 0 0 10px var(--success-green); }
+        }
+
+        .feed-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+        }
+
+        .no-feed {
+            color: var(--text-secondary); 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .feed-status {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            background: rgba(0,0,0,0.7);
+            padding: 2px 6px;
+            border-radius: 2px;
+        }
+
+        .feed-fps {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--accent-cyan);
+            background: rgba(0,0,0,0.7);
+            padding: 2px 6px;
+            border-radius: 2px;
+        }
+
         .mock-controls {
             background: var(--bg-panel-light);
             border: 1px solid var(--border-color);
@@ -367,24 +491,6 @@
         .log-message.alert { color: var(--primary-red); }
         .log-message.info { color: var(--accent-cyan); }
         .log-message.success { color: var(--success-green); }
-
-        .video-feed {
-            position: relative; background: var(--bg-dark);
-            height: 200px; border-radius: 4px; margin-bottom: 15px;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; border: 1px solid var(--border-color);
-        }
-
-        .video-feed img { max-width: 100%; max-height: 100%; object-fit: contain; }
-
-        .video-overlay {
-            position: absolute; top: 10px; left: 10px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.7rem; color: var(--primary-red);
-            background: rgba(0,0,0,0.7); padding: 3px 8px; border-radius: 3px;
-        }
-
-        .no-feed { color: var(--text-secondary); font-family: 'Share Tech Mono', monospace; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
@@ -543,8 +649,21 @@
                 </div>
 
                 <div class="video-feed" id="videoFeed">
-                    <span class="no-feed">TRACKER FEED OFFLINE</span>
-                    <div class="video-overlay" id="videoOverlay" style="display: none;">● REC</div>
+                    <div class="feed-loading" id="feedLoading">
+                        <div class="loading-spinner"></div>
+                        <span class="loading-text">AWAITING TRACKER<span class="loading-dots"></span></span>
+                    </div>
+                    <img id="trackerFeedImg" alt="Tracker Feed" style="display: none;">
+                    <div class="no-feed" id="noFeedLabel" style="display: none;">
+                        TRACKER OFFLINE<br>
+                        <small>Waiting for mission...</small>
+                    </div>
+                    <div class="video-overlay" id="videoOverlay">
+                        <span class="live-dot"></span>
+                        <span>LIVE</span>
+                    </div>
+                    <span class="feed-fps" id="feedFps"></span>
+                    <span class="feed-status" id="feedStatus">STANDBY</span>
                 </div>
 
                 <div class="mock-controls">
@@ -558,8 +677,7 @@
                 <div style="margin-top: 15px;">
                     <div class="mock-title">📋 ACTIVITY LOG</div>
                     <div id="activityLog" style="max-height: 150px; overflow-y: auto; background: var(--bg-dark); border-radius: 4px; padding: 5px;">
-                        <div class="log-entry"><span class="log-time">16:45:23</span><span class="log-message info">System initialized</span></div>
-                        <div class="log-entry"><span class="log-time">16:45:24</span><span class="log-message success">GO2-ALPHA patrol started</span></div>
+                        <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-message info">System initialized</span></div>
                     </div>
                 </div>
             </div>
@@ -572,7 +690,14 @@
     </div>
 
     <script>
-        const CONFIG = { rosbridge_url: 'ws://localhost:9090', topics: { target_object: '/mission/target_object' } };
+        const CONFIG = { 
+            rosbridge_url: 'ws://localhost:9090', 
+            topics: { 
+                target_object: '/mission/target_object',
+                debug_image_compressed: '/tracked_object/debug_image/compressed',
+                mission_status: '/mission/status'
+            } 
+        };
 
         const THREAT_MAPPING = {
             'soldier': 'person', 'enemy': 'person', 'person': 'person', 'intruder': 'person',
@@ -580,8 +705,18 @@
             'drone': 'airplane', 'aircraft': 'airplane'
         };
 
-        let ros = null, targetPublisher = null, isConnected = false, isListening = false, recognition = null;
+        let ros = null;
+        let targetPublisher = null;
+        let imageSubscriber = null;
+        let statusSubscriber = null;
+        let isConnected = false;
+        let isListening = false;
+        let recognition = null;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let feedActive = false;
 
+        // DateTime
         function updateDateTime() {
             const now = new Date();
             document.getElementById('datetime').textContent = now.toLocaleString('en-US', {
@@ -589,8 +724,10 @@
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
             }).toUpperCase();
         }
-        setInterval(updateDateTime, 1000); updateDateTime();
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
 
+        // ROS Connection
         function connectToROS() {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js';
@@ -601,13 +738,121 @@
 
         function initROS() {
             ros = new ROSLIB.Ros({ url: CONFIG.rosbridge_url });
-            ros.on('connection', () => { isConnected = true; updateConnectionStatus(true); setupPublishers(); addLog('ROS connected', 'success'); });
+            
+            ros.on('connection', () => { 
+                isConnected = true; 
+                updateConnectionStatus(true); 
+                setupPublishers();
+                subscribeToMissionStatus();
+                subscribeToDebugImage();
+                addLog('ROS connected', 'success'); 
+            });
+            
             ros.on('error', () => updateConnectionStatus(false));
-            ros.on('close', () => { isConnected = false; updateConnectionStatus(false); addLog('ROS disconnected', 'alert'); setTimeout(initROS, 3000); });
+            
+            ros.on('close', () => { 
+                isConnected = false; 
+                updateConnectionStatus(false); 
+                feedActive = false;
+                addLog('ROS disconnected', 'alert'); 
+                setTimeout(initROS, 3000); 
+            });
         }
 
         function setupPublishers() {
-            targetPublisher = new ROSLIB.Topic({ ros, name: CONFIG.topics.target_object, messageType: 'std_msgs/String' });
+            targetPublisher = new ROSLIB.Topic({ 
+                ros, 
+                name: CONFIG.topics.target_object, 
+                messageType: 'std_msgs/String' 
+            });
+        }
+
+        function subscribeToMissionStatus() {
+            statusSubscriber = new ROSLIB.Topic({
+                ros: ros,
+                name: CONFIG.topics.mission_status,
+                messageType: 'std_msgs/String'
+            });
+            
+            statusSubscriber.subscribe(function(message) {
+                const status = message.data;
+                const feedStatus = document.getElementById('feedStatus');
+                
+                if (status.startsWith('ACTIVE:')) {
+                    const target = status.split(':')[1];
+                    feedStatus.textContent = `TRACKING: ${target.toUpperCase()}`;
+                    showFeedLoading('CONNECTING');
+                    addLog(`Mission active: ${target}`, 'success');
+                } else if (status === 'IDLE') {
+                    feedStatus.textContent = 'STANDBY';
+                    showFeedOffline('Waiting for mission...');
+                } else if (status === 'FAILED') {
+                    feedStatus.textContent = 'FAILED';
+                    showFeedOffline('Tracker failed');
+                    addLog('Mission failed', 'alert');
+                }
+            });
+        }
+
+        function subscribeToDebugImage() {
+            imageSubscriber = new ROSLIB.Topic({
+                ros: ros,
+                name: CONFIG.topics.debug_image_compressed,
+                messageType: 'sensor_msgs/CompressedImage'
+            });
+            
+            imageSubscriber.subscribe(function(message) {
+                const imageData = 'data:image/jpeg;base64,' + message.data;
+                
+                const img = document.getElementById('trackerFeedImg');
+                const loading = document.getElementById('feedLoading');
+                const noFeed = document.getElementById('noFeedLabel');
+                const overlay = document.getElementById('videoOverlay');
+                const videoFeed = document.getElementById('videoFeed');
+                
+                img.src = imageData;
+                img.style.display = 'block';
+                loading.style.display = 'none';
+                noFeed.style.display = 'none';
+                overlay.style.display = 'flex';
+                videoFeed.classList.add('connected');
+                
+                if (!feedActive) {
+                    feedActive = true;
+                    addLog('Tracker feed connected', 'success');
+                }
+                
+                // FPS counter
+                frameCount++;
+                const now = Date.now();
+                if (now - lastFpsTime >= 1000) {
+                    document.getElementById('feedFps').textContent = `${frameCount} FPS`;
+                    frameCount = 0;
+                    lastFpsTime = now;
+                }
+            });
+        }
+
+        function showFeedLoading(text) {
+            document.getElementById('trackerFeedImg').style.display = 'none';
+            document.getElementById('feedLoading').style.display = 'flex';
+            document.getElementById('feedLoading').querySelector('.loading-text').innerHTML = 
+                text + '<span class="loading-dots"></span>';
+            document.getElementById('noFeedLabel').style.display = 'none';
+            document.getElementById('videoOverlay').style.display = 'none';
+            document.getElementById('videoFeed').classList.remove('connected');
+            feedActive = false;
+        }
+
+        function showFeedOffline(message) {
+            document.getElementById('trackerFeedImg').style.display = 'none';
+            document.getElementById('feedLoading').style.display = 'none';
+            document.getElementById('noFeedLabel').style.display = 'block';
+            document.getElementById('noFeedLabel').innerHTML = `TRACKER OFFLINE<br><small>${message}</small>`;
+            document.getElementById('videoOverlay').style.display = 'none';
+            document.getElementById('videoFeed').classList.remove('connected');
+            document.getElementById('feedFps').textContent = '';
+            feedActive = false;
         }
 
         function updateConnectionStatus(connected) {
@@ -627,6 +872,7 @@
             }
         }
 
+        // Voice Recognition
         function initVoiceRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 document.getElementById('voiceBtn').disabled = true;
@@ -635,7 +881,9 @@
             }
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
-            recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
 
             recognition.onstart = () => {
                 isListening = true;
@@ -647,9 +895,13 @@
 
             recognition.onresult = (event) => {
                 let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
                 document.getElementById('voiceTranscript').textContent = transcript;
-                if (event.results[event.resultIndex].isFinal) processVoiceCommand(transcript.toLowerCase());
+                if (event.results[event.resultIndex].isFinal) {
+                    processVoiceCommand(transcript.toLowerCase());
+                }
             };
 
             recognition.onerror = () => stopListening();
@@ -657,6 +909,7 @@
         }
 
         function startListening() { if (recognition && !isListening) recognition.start(); }
+        
         function stopListening() {
             isListening = false;
             document.getElementById('voiceBtn').classList.remove('listening');
@@ -668,18 +921,24 @@
             addLog(`Command: "${command}"`, 'info');
             let detectedThreat = null;
             for (const [keyword, cocoClass] of Object.entries(THREAT_MAPPING)) {
-                if (command.includes(keyword)) { detectedThreat = cocoClass; break; }
+                if (command.includes(keyword)) { 
+                    detectedThreat = cocoClass; 
+                    break; 
+                }
             }
             if (detectedThreat) {
                 addLog(`Threat: ${detectedThreat}`, 'success');
                 publishTarget(detectedThreat);
                 document.getElementById('voiceTranscript').innerHTML = `✓ Target: <strong>${detectedThreat.toUpperCase()}</strong>`;
-                if (command.includes('intercept') || command.includes('engage') || command.includes('track')) mockInvasion(detectedThreat);
+                if (command.includes('intercept') || command.includes('engage') || command.includes('track')) {
+                    mockInvasion(detectedThreat);
+                }
             } else {
                 document.getElementById('voiceTranscript').innerHTML = `⚠ Could not identify threat`;
             }
         }
 
+        // Mock Invasion
         function mockInvasion(threatType) {
             document.getElementById('alertBanner').classList.add('active');
             document.getElementById('threatInfo').classList.add('active');
@@ -696,11 +955,16 @@
                 'dog': 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=300&h=200&fit=crop',
                 'car': 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&h=200&fit=crop'
             };
-            if (images[threatType]) document.getElementById('threatImage').innerHTML = `<img src="${images[threatType]}" alt="Threat">`;
+            if (images[threatType]) {
+                document.getElementById('threatImage').innerHTML = `<img src="${images[threatType]}" alt="Threat">`;
+            }
 
-            document.querySelector('.robot-card.active').classList.add('alert');
-            document.querySelector('.robot-card.active .robot-status').textContent = 'ALERT';
-            document.querySelector('.robot-card.active .robot-status').className = 'robot-status alert';
+            const activeCard = document.querySelector('.robot-card.active');
+            if (activeCard) {
+                activeCard.classList.add('alert');
+                activeCard.querySelector('.robot-status').textContent = 'ALERT';
+                activeCard.querySelector('.robot-status').className = 'robot-status alert';
+            }
 
             addLog(`⚠️ THREAT: ${threatNames[threatType] || threatType}`, 'alert');
             publishTarget(threatType);
@@ -711,6 +975,7 @@
             document.getElementById('alertBanner').classList.remove('active');
             document.getElementById('threatInfo').classList.remove('active');
             document.getElementById('threatMarker').classList.remove('active');
+            
             const alertCard = document.querySelector('.robot-card.alert');
             if (alertCard) {
                 alertCard.classList.remove('alert');
@@ -719,6 +984,10 @@
             }
             document.getElementById('threatImage').innerHTML = '<span class="no-feed">NO THREAT IMAGE</span>';
             addLog('Alert cleared', 'success');
+            
+            if (targetPublisher && isConnected) {
+                targetPublisher.publish(new ROSLIB.Message({ data: 'stop' }));
+            }
         }
 
         function addLog(message, type = 'info') {
@@ -731,17 +1000,23 @@
         }
 
         function playAlertSound() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.value = 800; osc.type = 'square'; gain.gain.value = 0.1;
-            osc.start();
-            setTimeout(() => osc.frequency.value = 600, 200);
-            setTimeout(() => osc.stop(), 400);
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = 800; osc.type = 'square'; gain.gain.value = 0.1;
+                osc.start();
+                setTimeout(() => osc.frequency.value = 600, 200);
+                setTimeout(() => osc.stop(), 400);
+            } catch (e) {}
         }
 
-        document.getElementById('voiceBtn').addEventListener('click', () => { isListening ? recognition.stop() : startListening(); });
+        // Event Listeners
+        document.getElementById('voiceBtn').addEventListener('click', () => { 
+            isListening ? recognition.stop() : startListening(); 
+        });
+
         document.querySelectorAll('.robot-card').forEach(card => {
             card.addEventListener('click', () => {
                 document.querySelectorAll('.robot-card').forEach(c => c.classList.remove('active'));
@@ -750,7 +1025,12 @@
             });
         });
 
-        window.onload = () => { initVoiceRecognition(); connectToROS(); addLog('Control Center initialized', 'success'); };
+        // Initialize
+        window.onload = () => { 
+            initVoiceRecognition(); 
+            connectToROS();
+            addLog('Control Center initialized', 'success'); 
+        };
     </script>
 </body>
 </html>

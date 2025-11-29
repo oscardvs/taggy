@@ -13,7 +13,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
 from std_msgs.msg import String, Header
 
@@ -21,6 +21,7 @@ from cv_bridge import CvBridge
 import numpy as np
 from typing import Optional
 from pathlib import Path
+import cv2 
 
 from go2_tracker.base_tracker import CameraIntrinsics
 from go2_tracker.standard_tracker import StandardTracker
@@ -114,6 +115,9 @@ class ThreatTrackerNode(Node):
         
         if self.publish_debug:
             self.debug_pub = self.create_publisher(Image, '/tracked_object/debug_image', 10)
+            self.debug_compressed_pub = self.create_publisher(
+                CompressedImage, '/tracked_object/debug_image/compressed', 10
+            )
         
         # Processing timer (30 Hz) - starts immediately
         self.process_timer = self.create_timer(1.0 / 30.0, self._process_frame)
@@ -211,11 +215,29 @@ class ThreatTrackerNode(Node):
         self.status_pub.publish(String(data=status))
         
         # Publish debug image
+        # if self.publish_debug:
+        #     debug_img = self.tracker.get_debug_image(self.latest_rgb)
+        #     try:
+        #         msg = self.bridge.cv2_to_imgmsg(debug_img, encoding='bgr8')
+        #         self.debug_pub.publish(msg)
+        #     except Exception as e:
+        #         self.get_logger().error(f"Debug image error: {e}")
         if self.publish_debug:
             debug_img = self.tracker.get_debug_image(self.latest_rgb)
             try:
+                # Publish raw image
                 msg = self.bridge.cv2_to_imgmsg(debug_img, encoding='bgr8')
                 self.debug_pub.publish(msg)
+                
+                # Publish compressed image
+                compressed_msg = CompressedImage()
+                compressed_msg.header.stamp = self.get_clock().now().to_msg()
+                compressed_msg.header.frame_id = "camera_color_optical_frame"
+                compressed_msg.format = "jpeg"
+                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]
+                _, encoded = cv2.imencode('.jpg', debug_img, encode_param)
+                compressed_msg.data = encoded.tobytes()
+                self.debug_compressed_pub.publish(compressed_msg)
             except Exception as e:
                 self.get_logger().error(f"Debug image error: {e}")
     

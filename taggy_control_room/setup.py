@@ -25,5 +25,5 @@ setup(
             'voice_command_node = taggy_control_room.voice_command_node:main',
             'mission_monitor_node = taggy_control_room.mission_monitor_node:main',
         ],
-    }
+    },
 )
