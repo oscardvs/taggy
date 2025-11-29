@@ -18,7 +18,18 @@ set -e
 # Default venv location
 VENV_PATH="${1:-$HOME/taggy_venv}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIREMENTS_FILE="${SCRIPT_DIR}/../requirements.txt"
+REPO_DIR="${SCRIPT_DIR}/.."
+REQUIREMENTS_FILE="${REPO_DIR}/requirements.txt"
+
+# Detect workspace structure
+PARENT_DIR_NAME=$(basename "${REPO_DIR}")
+if [ "${PARENT_DIR_NAME}" = "taggy" ]; then
+    # Go2 structure: /home/taggy_ws/src/taggy/scripts/
+    WORKSPACE_DIR="${SCRIPT_DIR}/../../.."
+else
+    # Dev structure: /home/user/ros2_ws/src/scripts/
+    WORKSPACE_DIR="${SCRIPT_DIR}/../.."
+fi
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -211,7 +222,7 @@ echo ""
 echo "Combined ROS2 + venv activation:"
 echo "  source /opt/ros/foxy/setup.bash"
 echo "  source ${VENV_PATH}/bin/activate"
-echo "  source ~/ros2_ws/install/setup.bash"
+echo "  source ${WORKSPACE_DIR}/install/setup.bash"
 echo ""
 
 if [ "$IS_JETSON" = true ]; then

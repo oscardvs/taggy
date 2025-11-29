@@ -22,7 +22,17 @@ echo ""
 YOLO_DIR="/opt/yolo"
 VOSK_DIR="$HOME/vosk-models"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_DIR="${SCRIPT_DIR}/.."
+REPO_DIR="${SCRIPT_DIR}/.."
+
+# Detect workspace structure
+PARENT_DIR_NAME=$(basename "${REPO_DIR}")
+if [ "${PARENT_DIR_NAME}" = "taggy" ]; then
+    # Go2 structure: /home/taggy_ws/src/taggy/scripts/
+    WORKSPACE_DIR="${SCRIPT_DIR}/../../.."
+else
+    # Dev structure: /home/user/ros2_ws/src/scripts/
+    WORKSPACE_DIR="${SCRIPT_DIR}/../.."
+fi
 
 # =============================================================================
 # YOLO11 Model
@@ -37,7 +47,7 @@ if [ ! -d "${YOLO_DIR}" ]; then
 fi
 
 # Download YOLO11n using ultralytics (proper method)
-YOLO11_PT="${WORKSPACE_DIR}/yolo11n.pt"
+YOLO11_PT="${REPO_DIR}/yolo11n.pt"
 if [ ! -f "${YOLO11_PT}" ]; then
     echo "Downloading YOLO11n model via ultralytics..."
     python3 -c "
@@ -91,8 +101,8 @@ model.export(format='onnx', imgsz=640, opset=12)
 " 2>/dev/null || echo "Note: ONNX export skipped (will be done on first perception run)"
     
     # Move exported file if it exists
-    if [ -f "${WORKSPACE_DIR}/yolo11n.onnx" ]; then
-        mv "${WORKSPACE_DIR}/yolo11n.onnx" "${YOLO11_ONNX}"
+    if [ -f "${REPO_DIR}/yolo11n.onnx" ]; then
+        mv "${REPO_DIR}/yolo11n.onnx" "${YOLO11_ONNX}"
         echo "✓ YOLO11n.onnx exported to ${YOLO11_ONNX}"
     fi
 fi

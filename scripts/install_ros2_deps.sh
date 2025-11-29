@@ -79,12 +79,12 @@ sudo apt install -y portaudio19-dev || echo "Warning: portaudio not installed (v
 echo ""
 echo "Attempting to install explore_lite..."
 sudo apt install -y ros-foxy-explore-lite 2>/dev/null || {
-    echo ""
-    echo "Note: ros-foxy-explore-lite not available via apt."
-    echo "You may need to build it from source if exploration is needed:"
-    echo "  cd ~/ros2_ws/src"
-    echo "  git clone -b foxy https://github.com/robo-friends/m-explore-ros2.git"
-    echo "  cd ~/ros2_ws && colcon build --packages-select explore_lite"
+echo ""
+echo "Note: ros-foxy-explore-lite not available via apt."
+echo "You may need to build it from source if exploration is needed:"
+echo "  cd <your_workspace>/src"
+echo "  git clone -b foxy https://github.com/robo-friends/m-explore-ros2.git"
+echo "  cd <your_workspace> && colcon build --packages-select explore_lite"
 }
 
 echo ""

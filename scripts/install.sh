@@ -26,7 +26,20 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_DIR="${SCRIPT_DIR}/../.."
+REPO_DIR="${SCRIPT_DIR}/.."
+
+# Detect workspace: scripts are in src/taggy/scripts/ (Go2) or src/scripts/ (dev)
+# Check if parent dir is named "taggy" to determine structure
+PARENT_DIR_NAME=$(basename "${REPO_DIR}")
+if [ "${PARENT_DIR_NAME}" = "taggy" ]; then
+    # Go2 structure: /home/taggy_ws/src/taggy/scripts/
+    WORKSPACE_DIR="${SCRIPT_DIR}/../../.."
+    SRC_PACKAGES_PATH="src/taggy"
+else
+    # Dev structure: /home/user/ros2_ws/src/scripts/
+    WORKSPACE_DIR="${SCRIPT_DIR}/../.."
+    SRC_PACKAGES_PATH="src"
+fi
 VENV_PATH="${HOME}/taggy_venv"
 NO_BUILD=false
 
@@ -61,6 +74,8 @@ echo "║                                                              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 echo "Workspace: ${WORKSPACE_DIR}"
+echo "Repo Dir: ${REPO_DIR}"
+echo "Packages Path: ${SRC_PACKAGES_PATH}"
 echo "Venv Path: ${VENV_PATH}"
 echo "Architecture: ${ARCH}"
 if [ "$IS_JETSON" = true ]; then
@@ -204,7 +219,7 @@ rosdep update
 
 # Install any missing rosdep dependencies
 cd "${WORKSPACE_DIR}"
-rosdep install --from-paths src --ignore-src -r -y || true
+rosdep install --from-paths "${SRC_PACKAGES_PATH}" --ignore-src -r -y || true
 
 # =============================================================================
 # Step 5: Build Workspace
@@ -245,6 +260,9 @@ echo "  # Or add to ~/.bashrc for automatic activation:"
 echo "  echo 'source /opt/ros/foxy/setup.bash' >> ~/.bashrc"
 echo "  echo 'source ${VENV_PATH}/bin/activate' >> ~/.bashrc"
 echo "  echo 'source ${WORKSPACE_DIR}/install/setup.bash' >> ~/.bashrc"
+echo ""
+echo "Repo location: ${REPO_DIR}"
+echo "Workspace: ${WORKSPACE_DIR}"
 echo ""
 echo "  # Launch robot control"
 echo "  ros2 launch go2_bringup go2_control.launch.py"
