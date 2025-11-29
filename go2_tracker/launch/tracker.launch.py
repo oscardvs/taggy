@@ -19,9 +19,8 @@ Usage:
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -31,7 +30,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('go2_tracker')
     default_config = os.path.join(pkg_share, 'config', 'tracker_config.yaml')
     
-    # Declare arguments (these override config file values)
+    # Declare arguments
     config_arg = DeclareLaunchArgument(
         'config',
         default_value=default_config,
@@ -40,13 +39,13 @@ def generate_launch_description():
     
     threat_id_arg = DeclareLaunchArgument(
         'threat_id',
-        default_value='',
-        description='Class name to track (overrides config). Examples: dog, person, cat'
+        default_value='person',
+        description='Class name to track. Examples: dog, person, cat'
     )
     
     multi_threat_arg = DeclareLaunchArgument(
         'env_with_multiple_threats',
-        default_value='',
+        default_value='false',
         description='Set to true if multiple objects of same class may be present'
     )
     
@@ -58,34 +57,26 @@ def generate_launch_description():
     
     model_arg = DeclareLaunchArgument(
         'model',
-        default_value='',
+        default_value='yolo11n.pt',
         description='YOLO11 model: yolo11n.pt, yolo11s.pt, yolo11m.pt'
     )
     
-    # Build parameter overrides
-    # Note: Empty strings mean "use config file value"
-    
+    # Tracker node - config FIRST, then override with launch args
     tracker_node = Node(
         package='go2_tracker',
         executable='tracker_node.py',
         name='tracker',
         output='screen',
-        # parameters=[
-        #     LaunchConfiguration('config'),
-        #     {
-        #         # These only override if non-empty
-        #         'threat_id': LaunchConfiguration('threat_id'),
-        #         'env_with_multiple_threats': LaunchConfiguration('env_with_multiple_threats'),
-        #         'reference_image_path': LaunchConfiguration('reference_image'),
-        #         'model': LaunchConfiguration('model'),
-        #     }
-        # ],
-        parameters=[LaunchConfiguration('config')],
-        # remappings=[
-        #     ('/camera/color/image_raw', '/camera/color/image_raw'),
-        #     ('/camera/aligned_depth_to_color/image_raw', '/camera/aligned_depth_to_color/image_raw'),
-        #     ('/camera/color/camera_info', '/camera/color/camera_info'),
-        # ]
+        parameters=[
+            # LaunchConfiguration('config'),  # Load config file FIRST
+            {
+                # Override with launch arguments SECOND
+                'threat_id': LaunchConfiguration('threat_id'),
+                'env_with_multiple_threats': LaunchConfiguration('env_with_multiple_threats'),
+                'reference_image_path': LaunchConfiguration('reference_image'),
+                'model': LaunchConfiguration('model'),
+            }
+        ],
     )
     
     return LaunchDescription([

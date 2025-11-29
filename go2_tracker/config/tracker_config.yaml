@@ -40,7 +40,7 @@ tracker:
     # YOLO11 MODEL SETTINGS
     # -------------------------------------------------------------------------
     # Model options: yolo11n.pt (fast), yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt (accurate)
-    model: "yolo11n.pt"
+    model: "yolov8n.pt"
 
     # Detection confidence threshold (0.0 - 1.0)
     confidence_threshold: 0.5

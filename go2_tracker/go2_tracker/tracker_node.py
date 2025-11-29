@@ -56,8 +56,6 @@ class ThreatTrackerNode(Node):
         self.declare_parameter('rgb_topic', '/camera/color/image_raw')
         self.declare_parameter('depth_topic', '/camera/aligned_depth_to_color/image_raw')
         self.declare_parameter('camera_info_topic', '/camera/color/camera_info')
-
-        self.declare_parameter('target_object_topic', '/mission/target_object')
         
         # Get parameters
         self.threat_id = self.get_parameter('threat_id').value
@@ -75,8 +73,6 @@ class ThreatTrackerNode(Node):
         rgb_topic = self.get_parameter('rgb_topic').value
         depth_topic = self.get_parameter('depth_topic').value
         camera_info_topic = self.get_parameter('camera_info_topic').value
-
-        target_object_topic = self.get_parameter('target_object_topic').value
         
         # Validate threat_id
         class_id = get_class_id(self.threat_id)
@@ -93,20 +89,9 @@ class ThreatTrackerNode(Node):
         self.latest_rgb: Optional[np.ndarray] = None
         self.latest_depth: Optional[np.ndarray] = None
 
-        # Tracker state
+        # Initialize tracker immediately with parameter value
         self.tracker = None
-        self.tracker_initialized = False
-        
-        # Wait for target from topic or use config
-        self.target_from_topic = False
-        self.waiting_for_target = True
-        
-        # Initialize appropriate tracker
         self._init_tracker()
-
-        # Subscribe to target object topic first
-        self.target_sub = self.create_subscription(
-            String, target_object_topic, self._target_callback, 10)
         
         # QoS for sensor data
         sensor_qos = QoSProfile(
@@ -129,15 +114,9 @@ class ThreatTrackerNode(Node):
         
         if self.publish_debug:
             self.debug_pub = self.create_publisher(Image, '/tracked_object/debug_image', 10)
-
-        # Timer to wait for target topic, then fallback to config
-        self.startup_timer = self.create_timer(2.0, self._startup_check)
         
-        # Processing timer (30 Hz) - starts after tracker is initialized
-        self.process_timer = None
-        
-        # # Processing timer (30 Hz)
-        # self.timer = self.create_timer(1.0 / 30.0, self._process_frame)
+        # Processing timer (30 Hz) - starts immediately
+        self.process_timer = self.create_timer(1.0 / 30.0, self._process_frame)
         
         # Log configuration
         self.get_logger().info("=" * 60)
@@ -155,53 +134,9 @@ class ThreatTrackerNode(Node):
             self.get_logger().info(f"  match_threshold: {self.match_threshold}")
         self.get_logger().info("=" * 60)
     
-    def _target_callback(self, msg: String):
-        """Handle dynamic target updates from /mission/target_object."""
-        new_target = msg.data.strip().lower()
-        
-        if not new_target:
-            return
-        
-        # Validate the target class
-        class_id = get_class_id(new_target)
-        if class_id < 0:
-            self.get_logger().warn(f"Unknown target class: '{new_target}'. Available: {list(COCO_CLASSES.keys())}")
-            return
-        
-        # Check if target changed
-        if new_target != self.threat_id:
-            self.get_logger().info(f"Target changed: {self.threat_id} -> {new_target}")
-            self.threat_id = new_target
-            self.target_from_topic = True
-            self._init_tracker()
-        
-        # If waiting for first target
-        if self.waiting_for_target:
-            self.waiting_for_target = False
-            self.target_from_topic = True
-            self._init_tracker()
-            self._start_processing()
-    
-    def _startup_check(self):
-        """Check if we received target from topic, otherwise use config."""
-        # Cancel this timer
-        self.startup_timer.cancel()
-        
-        if self.waiting_for_target:
-            self.get_logger().info(f"No target received from topic, using config: {self.threat_id}")
-            self.waiting_for_target = False
-            self._init_tracker()
-            self._start_processing()
-    
-    def _start_processing(self):
-        """Start the main processing timer."""
-        if self.process_timer is None:
-            self.process_timer = self.create_timer(1.0 / 30.0, self._process_frame)
-    
     def _init_tracker(self):
         """Initialize the appropriate tracker based on config."""
         if self.multi_threat_env:
-            # Multi-threat environment: use Re-ID tracker
             self.get_logger().info("Initializing Re-ID tracker for multi-threat environment")
             
             if not self.reference_path:
@@ -220,7 +155,6 @@ class ThreatTrackerNode(Node):
                 depth_filter_size=self.depth_filter_size,
             )
         else:
-            # Single-threat environment: use standard tracker
             self.get_logger().info("Initializing standard YOLO11 tracker")
             
             self.tracker = StandardTracker(
@@ -258,7 +192,6 @@ class ThreatTrackerNode(Node):
     
     def _process_frame(self):
         """Main processing loop."""
-
         if self.latest_rgb is None:
             return
         
