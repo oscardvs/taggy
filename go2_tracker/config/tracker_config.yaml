@@ -16,7 +16,7 @@ tracker:
     # -------------------------------------------------------------------------
     # Name of the object class to track (COCO class names)
     # Examples: person, dog, cat, car, bicycle, bottle, cup, cell phone
-    threat_id: "dog"
+    threat_id: "person"
 
     # -------------------------------------------------------------------------
     # ENVIRONMENT CONFIGURATION
