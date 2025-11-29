@@ -4,7 +4,8 @@ Threat Tracker ROS2 Node
 
 Main tracker node that automatically selects the appropriate tracker based on config:
 - Standard YOLO11 tracker for single-threat environments
-- Re-ID tracker for multi-threat environments (with reference image)
+- Classical Re-ID tracker (SIFT + histogram) for multi-threat environments
+- Deep Re-ID tracker (neural network) for robust multi-threat tracking
 
 Configuration is loaded from tracker_config.yaml
 """
@@ -27,6 +28,12 @@ from go2_tracker.standard_tracker import StandardTracker
 from go2_tracker.reid_tracker import ReIDTracker
 from go2_tracker.coco_classes import get_class_id, COCO_CLASSES
 
+try:
+    from go2_tracker.deep_reid_tracker import DeepReIDTracker
+    DEEP_REID_AVAILABLE = True
+except ImportError:
+    DEEP_REID_AVAILABLE = False
+
 
 class ThreatTrackerNode(Node):
     """
@@ -34,7 +41,9 @@ class ThreatTrackerNode(Node):
     
     Automatically selects tracker based on configuration:
     - env_with_multiple_threats=false -> StandardTracker
-    - env_with_multiple_threats=true  -> ReIDTracker (requires reference image)
+    - env_with_multiple_threats=true  -> ReIDTracker or DeepReIDTracker (requires reference image)
+      - reid_backend='classical' -> ReIDTracker (SIFT + histogram)
+      - reid_backend='deep'      -> DeepReIDTracker (neural network)
     """
     
     def __init__(self):
@@ -46,8 +55,21 @@ class ThreatTrackerNode(Node):
         self.declare_parameter('reference_image_path', '')
         self.declare_parameter('model', 'yolo11n.pt')
         self.declare_parameter('confidence_threshold', 0.5)
+        
+        # Re-ID backend selection
+        self.declare_parameter('reid_backend', 'deep')  # 'classical' or 'deep'
+        
+        # Classical Re-ID parameters (SIFT + histogram)
         self.declare_parameter('reid_method', 'combined')
-        self.declare_parameter('match_threshold', 0.5)
+        
+        # Deep Re-ID parameters
+        self.declare_parameter('reid_model', 'osnet_x1_0')
+        self.declare_parameter('reid_weights', 'osnet_x1_0_imagenet')
+        self.declare_parameter('track_memory_frames', 30)
+        self.declare_parameter('reid_verification_interval', 10)
+        
+        # Common parameters
+        self.declare_parameter('match_threshold', 0.6)
         self.declare_parameter('tracker_type', 'bytetrack.yaml')
         self.declare_parameter('device', '')
         self.declare_parameter('depth_filter_size', 5)
@@ -63,7 +85,15 @@ class ThreatTrackerNode(Node):
         self.reference_path = self.get_parameter('reference_image_path').value
         self.model = self.get_parameter('model').value
         self.conf_threshold = self.get_parameter('confidence_threshold').value
+        
+        # Re-ID configuration
+        self.reid_backend = self.get_parameter('reid_backend').value
         self.reid_method = self.get_parameter('reid_method').value
+        self.reid_model = self.get_parameter('reid_model').value
+        self.reid_weights = self.get_parameter('reid_weights').value
+        self.track_memory_frames = self.get_parameter('track_memory_frames').value
+        self.reid_verify_interval = self.get_parameter('reid_verification_interval').value
+        
         self.match_threshold = self.get_parameter('match_threshold').value
         self.tracker_type = self.get_parameter('tracker_type').value
         self.device = self.get_parameter('device').value
@@ -123,37 +153,79 @@ class ThreatTrackerNode(Node):
         self.get_logger().info("=" * 60)
         self.get_logger().info(f"  threat_id: {self.threat_id} (class {class_id})")
         self.get_logger().info(f"  env_with_multiple_threats: {self.multi_threat_env}")
-        self.get_logger().info(f"  tracker_type: {'Re-ID' if self.multi_threat_env else 'Standard YOLO11'}")
+        
+        if self.multi_threat_env:
+            tracker_name = f"Re-ID ({self.reid_backend})"
+        else:
+            tracker_name = "Standard YOLO11"
+        self.get_logger().info(f"  tracker_type: {tracker_name}")
+        
         self.get_logger().info(f"  model: {self.model}")
         self.get_logger().info(f"  rgb_topic: {rgb_topic}")
         self.get_logger().info(f"  depth_topic: {depth_topic}")
         self.get_logger().info(f"  camera_info_topic: {camera_info_topic}")
+        
         if self.multi_threat_env:
             self.get_logger().info(f"  reference_image: {self.reference_path or 'NOT SET'}")
             self.get_logger().info(f"  match_threshold: {self.match_threshold}")
+            if self.reid_backend == 'deep':
+                self.get_logger().info(f"  reid_model: {self.reid_model}")
+                self.get_logger().info(f"  track_memory: {self.track_memory_frames} frames")
+        
         self.get_logger().info("=" * 60)
     
     def _init_tracker(self):
         """Initialize the appropriate tracker based on config."""
         if self.multi_threat_env:
             # Multi-threat environment: use Re-ID tracker
-            self.get_logger().info("Initializing Re-ID tracker for multi-threat environment")
-            
             if not self.reference_path:
                 self.get_logger().warn(
                     "No reference_image_path set! Run 'ros2 run go2_tracker capture_reference' first."
                 )
             
-            self.tracker = ReIDTracker(
-                threat_id=self.threat_id,
-                reference_image_path=self.reference_path,
-                model=self.model,
-                confidence_threshold=self.conf_threshold,
-                reid_method=self.reid_method,
-                match_threshold=self.match_threshold,
-                device=self.device,
-                depth_filter_size=self.depth_filter_size,
-            )
+            # Select Re-ID backend
+            if self.reid_backend == 'deep':
+                # Deep learning Re-ID
+                if not DEEP_REID_AVAILABLE:
+                    self.get_logger().error(
+                        "Deep Re-ID requested but not available! "
+                        "Install with: pip install -r requirements.txt"
+                    )
+                    self.get_logger().warn("Falling back to classical Re-ID tracker")
+                    self.reid_backend = 'classical'
+                else:
+                    self.get_logger().info(
+                        f"Initializing Deep Re-ID tracker with {self.reid_model}"
+                    )
+                    self.tracker = DeepReIDTracker(
+                        threat_id=self.threat_id,
+                        reference_image_path=self.reference_path,
+                        model=self.model,
+                        confidence_threshold=self.conf_threshold,
+                        reid_model=self.reid_model,
+                        reid_weights=self.reid_weights,
+                        match_threshold=self.match_threshold,
+                        device=self.device,
+                        depth_filter_size=self.depth_filter_size,
+                        track_memory_frames=self.track_memory_frames,
+                        reid_verification_interval=self.reid_verify_interval,
+                    )
+            
+            if self.reid_backend == 'classical':
+                # Classical Re-ID (SIFT + histogram)
+                self.get_logger().info(
+                    "Initializing classical Re-ID tracker (SIFT + histogram)"
+                )
+                self.tracker = ReIDTracker(
+                    threat_id=self.threat_id,
+                    reference_image_path=self.reference_path,
+                    model=self.model,
+                    confidence_threshold=self.conf_threshold,
+                    reid_method=self.reid_method,
+                    match_threshold=self.match_threshold,
+                    device=self.device,
+                    depth_filter_size=self.depth_filter_size,
+                )
         else:
             # Single-threat environment: use standard tracker
             self.get_logger().info("Initializing standard YOLO11 tracker")

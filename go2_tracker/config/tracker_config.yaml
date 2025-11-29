@@ -43,13 +43,52 @@ tracker:
     confidence_threshold: 0.5
 
     # -------------------------------------------------------------------------
-    # RE-ID SETTINGS (only used if env_with_multiple_threats: true)
+    # RE-ID BACKEND SELECTION (only used if env_with_multiple_threats: true)
+    # -------------------------------------------------------------------------
+    # Re-ID backend options:
+    # - "classical": SIFT + color histogram matching (fast, no GPU needed)
+    # - "deep":      Deep neural network Re-ID (robust, GPU recommended)
+    reid_backend: "deep"
+
+    # -------------------------------------------------------------------------
+    # CLASSICAL RE-ID SETTINGS (only if reid_backend: classical)
     # -------------------------------------------------------------------------
     # Matching method: histogram (fast), sift (balanced), combined (best)
     reid_method: "combined"
 
+    # -------------------------------------------------------------------------
+    # DEEP RE-ID SETTINGS (only if reid_backend: deep)
+    # -------------------------------------------------------------------------
+    # Re-ID model architecture:
+    #   - osnet_x1_0:   Best balance of speed/accuracy (recommended)
+    #   - osnet_x0_5:   Faster, less accurate
+    #   - osnet_x0_25:  Very fast, lower accuracy
+    #   - resnet50:     More accurate, slower
+    reid_model: "osnet_x1_0"
+
+    # Pre-trained weights:
+    #   - osnet_x1_0_imagenet:   General purpose (works for any object)
+    #   - osnet_x1_0_market1501: Fine-tuned for person re-ID
+    #   - osnet_x1_0_dukemtmc:   Alternative person re-ID dataset
+    reid_weights: "osnet_x1_0_imagenet"
+
+    # Track memory: how many frames to remember disappeared tracks
+    # Set to 0 for infinite memory (recommended for long-term tracking)
+    # Set to N for N frames timeout (e.g., 30 = ~1 second at 30 Hz)
+    track_memory_frames: 0
+
+    # Re-verification interval: verify target identity every N frames
+    # Lower = more frequent checks (safer), Higher = more efficient
+    reid_verification_interval: 10
+
+    # -------------------------------------------------------------------------
+    # COMMON RE-ID SETTINGS
+    # -------------------------------------------------------------------------
     # Minimum match score to accept as target (0.0 - 1.0)
-    match_threshold: 0.5
+    # Lower = more permissive (may track wrong object)
+    # Higher = more strict (may lose correct object)
+    # Recommended: 0.5-0.6 for classical, 0.6-0.7 for deep
+    match_threshold: 0.6
 
     # -------------------------------------------------------------------------
     # TRACKING SETTINGS
@@ -58,6 +97,7 @@ tracker:
     tracker_type: "bytetrack.yaml"
 
     # Device: "" for auto, "cpu", or "0" for GPU
+    # Deep Re-ID strongly recommended to use GPU
     device: ""
 
     # -------------------------------------------------------------------------
