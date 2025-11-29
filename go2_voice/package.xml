@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>go2_voice</name>
+  <version>1.0.0</version>
+  <description>Offline voice command recognition for Unitree Go2 using Vosk ASR.
+  Listens to microphone input and publishes recognized target object keywords.</description>
+  <maintainer email="oscar.devos02@gmail.com">Oscar Devos</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core ROS2 -->
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+
+  <!-- Unitree messages (for AudioData) -->
+  <depend>unitree_go</depend>
+
+  <!-- Python dependencies for voice_command_node -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
+

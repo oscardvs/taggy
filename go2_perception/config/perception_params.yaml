@@ -1,0 +1,74 @@
+# Perception Node Parameters
+# YOLOv8 TensorRT object detection with depth fusion for 3D localization
+#
+# EDTH Hackathon - Unitree Go2 Perception
+
+perception_node:
+  ros__parameters:
+    # ============================================================
+    # MODEL PATHS
+    # ============================================================
+    
+    # Path to YOLOv8 ONNX model file
+    # Download from: https://github.com/ultralytics/assets/releases
+    # Recommended: yolov8n.onnx (Nano) for best speed/accuracy on Jetson
+    model_path: "/opt/yolo/yolov8n.onnx"
+    
+    # Path to save/load TensorRT engine
+    # Engine is hardware-specific and will be built on first run if not found
+    # Building takes 5-10 minutes, subsequent runs use cached engine
+    engine_path: "/opt/yolo/yolov8n.engine"
+
+    # ============================================================
+    # DETECTION THRESHOLDS
+    # ============================================================
+    
+    # Minimum confidence score for detections [0.0-1.0]
+    # Higher = fewer false positives, may miss valid detections
+    # Lower = more detections, may include false positives
+    # Recommended: 0.5-0.7 for indoor robotics
+    confidence_threshold: 0.6
+    
+    # Non-Maximum Suppression IoU threshold [0.0-1.0]
+    # Controls overlap tolerance when merging duplicate detections
+    # Higher = more overlapping boxes kept
+    # Lower = more aggressive merging
+    nms_threshold: 0.45
+
+    # ============================================================
+    # MODEL INPUT SETTINGS
+    # ============================================================
+    
+    # Model input dimensions (must match ONNX export settings)
+    # YOLOv8 default is 640x640
+    input_width: 640
+    input_height: 640
+    
+    # Enable FP16 (half-precision) inference
+    # Recommended: true on Jetson Orin (uses Tensor Cores)
+    # Set to false if experiencing numerical issues
+    use_fp16: true
+
+    # ============================================================
+    # DEPTH PROCESSING
+    # ============================================================
+    
+    # Kernel size for median filter on depth sampling
+    # Larger = more robust to noise/dead pixels, less precise
+    # Must be odd number (will be rounded up if even)
+    # Recommended: 5 for RealSense D435i
+    depth_median_kernel: 5
+
+    # ============================================================
+    # COORDINATE FRAMES
+    # ============================================================
+    
+    # Camera optical frame (source frame for depth points)
+    # This is the frame where depth is measured
+    # For RealSense: camera_color_optical_frame
+    camera_frame: "camera_color_optical_frame"
+    
+    # Target frame for 3D pose output
+    # Usually "map" for navigation, "odom" for odometry-relative
+    target_frame: "map"
+

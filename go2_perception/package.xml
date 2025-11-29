@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>go2_perception</name>
+  <version>1.0.0</version>
+  <description>YOLOv8 TensorRT object detection with depth fusion for Unitree Go2.
+  Provides real-time semantic perception for the autonomous search-and-find mission.</description>
+  <maintainer email="oscar.devos02@gmail.com">Oscar Devos</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core ROS2 -->
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  
+  <!-- Vision -->
+  <depend>vision_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
+  <depend>message_filters</depend>
+
+  <!-- TF2 for coordinate transforms -->
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <!-- OpenCV -->
+  <depend>libopencv-dev</depend>
+
+  <!-- System dependencies (CUDA/TensorRT) -->
+  <!-- Note: These are typically installed system-wide on Jetson -->
+  <!-- and discovered by CMake, not managed by rosdep -->
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
+

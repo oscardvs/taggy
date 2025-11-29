@@ -1,0 +1,119 @@
+# Mission Executive Parameters
+# Configuration for the FSM-based mission orchestrator
+
+mission_executive_node:
+  ros__parameters:
+    # ============================================================
+    # TIMEOUT SETTINGS (seconds)
+    # ============================================================
+    
+    # Time to wait for voice command in LISTENING state
+    # After this timeout, returns to IDLE
+    listening_timeout: 10.0
+    
+    # Time to wait before declaring target lost in TRACKING state
+    # If no detection received within this time, returns to SEARCHING
+    target_lost_timeout: 2.0
+    
+    # Delay before returning to IDLE after reaching target
+    arrived_delay: 5.0
+    
+    # Delay before returning to IDLE after mission failure
+    failed_delay: 5.0
+
+    # ============================================================
+    # DISTANCE THRESHOLDS (meters)
+    # ============================================================
+    
+    # Target is considered reached when distance is below this threshold
+    arrival_distance: 0.5
+
+    # ============================================================
+    # SEARCH SETTINGS
+    # ============================================================
+    
+    # Maximum time to spend in SEARCHING state before giving up (seconds)
+    # Set to 0 to disable timeout (search indefinitely)
+    # This handles the case where exploration exhausts all frontiers
+    # without finding the target (standard explore_lite doesn't report this)
+    search_timeout: 300.0  # 5 minutes
+
+    # ============================================================
+    # VISUAL SERVO SETTINGS
+    # ============================================================
+    
+    # Maximum linear velocity during tracking (m/s)
+    servo_max_linear_vel: 0.3
+    
+    # Maximum angular velocity during tracking (rad/s)
+    servo_max_angular_vel: 0.5
+    
+    # Proportional gain for angular control
+    servo_angular_gain: 0.5
+    
+    # Proportional gain for linear control (based on distance)
+    servo_linear_gain: 0.2
+
+    # ============================================================
+    # IMAGE SETTINGS
+    # ============================================================
+    
+    # Image dimensions (for visual servo calculations)
+    image_width: 640
+    image_height: 480
+
+# Visual Servo Node Parameters
+# IBVS controller with LiDAR safety wrapper
+visual_servo_node:
+  ros__parameters:
+    # ============================================================
+    # IBVS CONTROLLER GAINS
+    # ============================================================
+    
+    # Proportional gain for yaw (angular) control
+    # Higher = more aggressive centering of target in image
+    # Recommended: 0.8-1.5
+    servo_kp_yaw: 1.0
+    
+    # Proportional gain for distance (linear) control
+    # Higher = faster approach to target
+    # Recommended: 0.3-0.7
+    servo_kp_distance: 0.5
+    
+    # Maximum linear velocity during tracking (m/s)
+    # Should be lower than navigation speed for safety
+    servo_max_linear_vel: 0.3
+    
+    # Maximum angular velocity during tracking (rad/s)
+    servo_max_angular_vel: 0.5
+
+    # ============================================================
+    # SAFETY PARAMETERS (LiDAR Reflex)
+    # ============================================================
+    
+    # Minimum distance to obstacle before stopping (meters)
+    # Forward velocity is set to 0 when obstacle closer than this
+    safety_distance: 0.3
+    
+    # Half-angle of frontal safety cone (degrees)
+    # LiDAR readings within ±this angle are checked for obstacles
+    # 30° gives a 60° frontal cone
+    safety_cone_angle: 30.0
+    
+    # Goal distance from target (meters)
+    # Robot stops approaching when this distance is reached
+    # Should match arrival_distance in mission_executive
+    goal_distance: 0.5
+
+    # ============================================================
+    # IMAGE SETTINGS
+    # ============================================================
+    
+    # Image dimensions (must match camera resolution)
+    image_width: 640
+    image_height: 480
+    
+    # Detection timeout (seconds)
+    # If no detection received within this time, stop moving
+    detection_timeout: 0.5
+
