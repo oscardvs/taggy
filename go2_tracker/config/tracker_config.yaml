@@ -1,0 +1,73 @@
+# =============================================================================
+# THREAT TRACKER CONFIGURATION
+# =============================================================================
+
+tracker:
+  ros__parameters:
+    # -------------------------------------------------------------------------
+    # CAMERA TOPICS
+    # -------------------------------------------------------------------------
+    rgb_topic: "/image_raw"
+    depth_topic: "/camera/aligned_depth_to_color/image_raw"
+    camera_info_topic: "/camera_info"
+
+    # -------------------------------------------------------------------------
+    # THREAT IDENTIFICATION
+    # -------------------------------------------------------------------------
+    # Name of the object class to track (COCO class names)
+    # Examples: person, dog, cat, car, bicycle, bottle, cup, cell phone
+    threat_id: "dog"
+
+    # -------------------------------------------------------------------------
+    # ENVIRONMENT CONFIGURATION
+    # -------------------------------------------------------------------------
+    # Set to true if multiple objects of the same class may be present
+    # - false: Use standard YOLO11 tracker (tracks closest object of class)
+    # - true:  Use Re-ID tracker with reference image (tracks YOUR specific object)
+    env_with_multiple_threats: false
+
+    # -------------------------------------------------------------------------
+    # REFERENCE IMAGE (only used if env_with_multiple_threats: true)
+    # -------------------------------------------------------------------------
+    # Path to reference image of the specific object to track
+    # Use the capture script to generate this: ros2 run object_tracker capture_reference.py
+    reference_image_path: "/home/user/tracker_references/reference_20251129_122131.jpg"
+
+    # -------------------------------------------------------------------------
+    # YOLO11 MODEL SETTINGS
+    # -------------------------------------------------------------------------
+    # Model options: yolo11n.pt (fast), yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt (accurate)
+    model: "yolo11n.pt"
+
+    # Detection confidence threshold (0.0 - 1.0)
+    confidence_threshold: 0.5
+
+    # -------------------------------------------------------------------------
+    # RE-ID SETTINGS (only used if env_with_multiple_threats: true)
+    # -------------------------------------------------------------------------
+    # Matching method: histogram (fast), sift (balanced), combined (best)
+    reid_method: "combined"
+
+    # Minimum match score to accept as target (0.0 - 1.0)
+    match_threshold: 0.5
+
+    # -------------------------------------------------------------------------
+    # TRACKING SETTINGS
+    # -------------------------------------------------------------------------
+    # Tracker type for multi-object tracking
+    tracker_type: "bytetrack.yaml"
+
+    # Device: "" for auto, "cpu", or "0" for GPU
+    device: ""
+
+    # -------------------------------------------------------------------------
+    # DEPTH & 3D SETTINGS
+    # -------------------------------------------------------------------------
+    # Median filter size for depth values (reduces noise)
+    depth_filter_size: 5
+
+    # -------------------------------------------------------------------------
+    # DEBUG & VISUALIZATION
+    # -------------------------------------------------------------------------
+    # Publish debug visualization image
+    publish_debug_image: true
