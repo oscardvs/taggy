@@ -54,7 +54,11 @@ sudo apt install -y portaudio19-dev
 ## 4. Python Dependencies
 
 ```bash
+# Voice command (Vosk)
 pip3 install vosk numpy pyaudio
+
+# Tracker (YOLO11)
+pip3 install ultralytics opencv-python
 ```
 
 ## 5. Vosk Model
@@ -141,11 +145,24 @@ source ~/ros2_ws/install/setup.bash
 ros2 launch go2_bringup mission_bringup.launch.py
 ```
 
-## 10. Trigger Mission
+## 10. Trigger Mission (Perception Pipeline)
 
 1. Hold **L2 + A** on controller → Robot enters LISTENING mode
 2. Say target object (e.g., "bottle", "backpack", "chair")
 3. Robot searches and navigates to target
+
+---
+
+## Pipeline Comparison
+
+| Feature | Perception Pipeline | Tracker Pipeline |
+|---------|--------------------|--------------------|
+| Detection | go2_perception (TensorRT) | go2_tracker (YOLO11) |
+| Control | Visual servo (reactive) | Nav2 (path-planned) |
+| Target Selection | Voice command | YAML config |
+| State Machine | Yes (mission_executive) | No (always tracking) |
+| Use Case | Voice-triggered search | Pre-configured follow |
+| Obstacle Avoidance | LiDAR reflex only | Full Nav2 costmaps |
 
 ## Quick Checks
 
@@ -181,6 +198,99 @@ ros2 topic pub /mission/target_object std_msgs/String "data: 'bottle'" -1
 ros2 topic pub /mission/state std_msgs/String "data: 'TRACKING'" -1
 ```
 
+---
+
+## Alternative: Tracker + Follower Pipeline (Nav2-based following)
+
+This pipeline uses go2_tracker for detection and go2_follower for Nav2 path-planned following.
+No state machine required - simpler standalone operation.
+
+### Configure Tracker Target
+
+Edit `go2_tracker/config/tracker_config.yaml`:
+```yaml
+tracker:
+  ros__parameters:
+    # Camera topics (verify these match your sensor setup)
+    rgb_topic: "/camera/color/image_raw"
+    depth_topic: "/camera/aligned_depth_to_color/image_raw"
+    camera_info_topic: "/camera/color/camera_info"
+    
+    # Target to track (COCO class name)
+    threat_id: "person"
+    confidence_threshold: 0.5
+```
+
+> **Note**: Verify camera topics match your RealSense output with `ros2 topic list | grep camera`
+
+### Launch Tracker Pipeline
+
+**Terminal 1: Robot Control**
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch go2_bringup go2_control.launch.py
+```
+
+**Terminal 2: Sensors (LiDAR + Camera)**
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch go2_bringup sensors.launch.py
+```
+
+**Terminal 3: SLAM + Navigation (disable exploration)**
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch go2_bringup full_navigation.launch.py enable_exploration:=false
+```
+
+**Terminal 4: Tracker**
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch go2_tracker tracker.launch.py
+```
+
+**Terminal 5: Follower**
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch go2_follower target_follower.launch.py perception_source:=tracker
+```
+
+### Follower Parameters
+
+Override at launch or edit `go2_follower/config/follower_params.yaml`:
+```bash
+# Custom follow distance (default: 1.0m)
+ros2 launch go2_follower target_follower.launch.py \
+    perception_source:=tracker \
+    follow_distance:=1.5
+
+# Parameters:
+#   follow_distance   - Distance to maintain from target [m]
+#   replan_threshold  - Min target movement to trigger replan [m]
+#   replan_rate       - Max replan frequency [Hz]
+```
+
+### Quick Checks (Tracker Pipeline)
+
+```bash
+# Check tracker status
+ros2 topic echo /tracked_object/status
+
+# Check tracked pose (camera frame)
+ros2 topic echo /tracked_object/pose
+
+# Check follower status
+ros2 topic echo /follower/status
+
+# Check follower goal (map frame)
+ros2 topic echo /follower/goal
+
+# View tracker debug image
+ros2 run rqt_image_view rqt_image_view /tracked_object/debug_image
+```
+
+---
+
 ## Troubleshooting
 
 | Issue | Fix |
@@ -195,6 +305,10 @@ ros2 topic pub /mission/state std_msgs/String "data: 'TRACKING'" -1
 | TensorRT build slow | Normal on first run (5-10 min), engine cached after |
 | Engine version error | Delete `/opt/yolo/*.engine` and restart perception |
 | TF transform error | Ensure SLAM running, or use `target_frame:=odom` |
+| Tracker no pose | Check `/tracked_object/status`, verify target in view |
+| Follower not moving | Check Nav2 running, verify `/follower/goal` publishing |
+| Follower TF error | Ensure SLAM provides `map` frame, check TF tree |
+| Unknown threat_id | Use valid COCO class name (person, dog, bottle, etc.) |
 
 ## Perception Details
 

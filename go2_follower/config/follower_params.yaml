@@ -1,0 +1,37 @@
+# =============================================================================
+# TARGET FOLLOWER CONFIGURATION
+# =============================================================================
+# Configuration for target_follower_node - follows tracked targets using Nav2
+
+target_follower:
+  ros__parameters:
+    # -------------------------------------------------------------------------
+    # FOLLOW BEHAVIOR
+    # -------------------------------------------------------------------------
+    # Distance to maintain from the target [meters]
+    # The robot will navigate to a position this far from the target
+    follow_distance: 1.0
+
+    # Minimum target movement to trigger a replan [meters]
+    # Smaller values = more responsive but more Nav2 load
+    replan_threshold: 0.5
+
+    # Maximum replan frequency [Hz]
+    # Limits how often new goals are sent to Nav2
+    replan_rate: 1.0
+
+    # -------------------------------------------------------------------------
+    # NAV2 SETTINGS
+    # -------------------------------------------------------------------------
+    # Timeout for Nav2 goals [seconds]
+    goal_timeout: 60.0
+
+    # Frame for planning (Nav2 uses this frame for goals)
+    target_frame: "map"
+
+    # -------------------------------------------------------------------------
+    # ENABLE/DISABLE
+    # -------------------------------------------------------------------------
+    # Set to false to disable following without stopping the node
+    enable_following: true
+
