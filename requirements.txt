@@ -1,0 +1,29 @@
+# Taggy - Go2 Robot Python Dependencies
+# ROS2 Foxy (Ubuntu 20.04 / Python 3.8)
+#
+# NOTE FOR JETSON (ARM):
+#   - PyTorch comes pre-installed with JetPack - DO NOT install via pip
+#   - OpenCV comes pre-installed with JetPack - DO NOT install via pip
+#   - Use: pip install -r requirements.txt --ignore-installed
+#
+# Install: pip install -r requirements.txt
+
+# Core dependencies
+numpy>=1.19.0,<2.0.0
+
+# Computer Vision (skip on Jetson - use system OpenCV)
+# opencv-python>=4.5.0,<4.9.0
+# opencv-contrib-python>=4.5.0,<4.9.0
+
+# YOLO11 Object Detection/Tracking
+# NOTE: On Jetson, ultralytics will use the pre-installed PyTorch from JetPack
+ultralytics>=8.3.0
+
+# Voice Recognition (Vosk - offline, works on ARM)
+vosk>=0.3.32
+
+# Audio Input (optional - for laptop testing with local microphone)
+pyaudio>=0.2.11
+
+# Additional utilities
+PyYAML>=5.3
