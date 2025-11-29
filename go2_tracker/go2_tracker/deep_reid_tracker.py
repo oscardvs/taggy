@@ -59,14 +59,9 @@ import time
 
 import torch
 import torch.nn.functional as F
+import torchvision.models as models
+import torchvision.transforms as transforms
 from ultralytics import YOLO
-
-try:
-    import torchreid
-    TORCHREID_AVAILABLE = True
-except ImportError:
-    TORCHREID_AVAILABLE = False
-    print("WARNING: torchreid not available. Install with: pip install torchreid")
 
 from go2_tracker.base_tracker import CameraIntrinsics, TrackedObject, pixel_to_3d
 from go2_tracker.coco_classes import get_class_id
@@ -76,12 +71,12 @@ class DeepReIDTracker:
     """
     Deep learning-based Re-ID tracker with temporal memory.
     
-    Uses pre-trained neural networks (OSNet, ResNet) to extract discriminative
+    Uses pre-trained ResNet50 from torchvision to extract discriminative
     embeddings for robust object re-identification.
     
     ARCHITECTURE:
     - Detection: YOLO11 + ByteTrack
-    - Re-ID: OSNet (Omni-Scale Network) or ResNet
+    - Re-ID: ResNet50 (ImageNet pretrained, feature extractor)
     - Matching: Cosine similarity in embedding space
     - Memory: Track ID association with temporal persistence
     """
@@ -92,8 +87,8 @@ class DeepReIDTracker:
         reference_image_path: str = "",
         model: str = "yolo11n.pt",
         confidence_threshold: float = 0.5,
-        reid_model: str = "osnet_x1_0",
-        reid_weights: str = "osnet_x1_0_imagenet",
+        reid_model: str = "resnet50",
+        reid_weights: str = "imagenet",
         match_threshold: float = 0.6,
         device: str = "",
         depth_filter_size: int = 5,
@@ -108,8 +103,8 @@ class DeepReIDTracker:
             reference_image_path: Path to reference image of YOUR specific object
             model: YOLO11 model path (detection)
             confidence_threshold: Detection confidence threshold
-            reid_model: Re-ID architecture ("osnet_x1_0", "osnet_x0_5", "resnet50")
-            reid_weights: Pre-trained weights ("osnet_x1_0_imagenet", "osnet_x1_0_market1501")
+            reid_model: Re-ID architecture ("resnet50", "resnet101", "resnet152")
+            reid_weights: Pre-trained weights ("imagenet" or path to weights)
             match_threshold: Minimum cosine similarity to accept match (0-1)
             device: Device ("", "cpu", "cuda", "0" for GPU 0)
             depth_filter_size: Median filter size for depth
@@ -117,20 +112,20 @@ class DeepReIDTracker:
             reid_verification_interval: Re-verify target every N frames
             
         Re-ID Model Options:
-            - "osnet_x1_0": Best balance of speed/accuracy (recommended)
-            - "osnet_x0_5": Faster, less accurate
-            - "resnet50": More accurate, slower
+            - "resnet50": Best balance of speed/accuracy (recommended)
+            - "resnet101": More accurate, slower
+            - "resnet152": Most accurate, slowest
             
         Re-ID Weights Options:
-            - "osnet_x1_0_imagenet": General purpose (works for any object)
-            - "osnet_x1_0_market1501": Fine-tuned for person re-ID
-            - "osnet_x1_0_dukemtmc": Alternative person re-ID dataset
+            - "imagenet": General purpose (works for any object)
         """
-        if not TORCHREID_AVAILABLE:
-            raise ImportError(
-                "torchreid is required for DeepReIDTracker. "
-                "Install with: pip install torchreid"
-            )
+        
+        self.threat_id = threat_id
+        self.target_class = get_class_id(threat_id)
+        self.conf_threshold = confidence_threshold
+        self.match_threshold = match_threshold
+        self.depth_filter_size = depth_filter_size
+        self.track_memory_frames = track_memory_frames
         
         self.threat_id = threat_id
         self.target_class = get_class_id(threat_id)
@@ -139,6 +134,7 @@ class DeepReIDTracker:
         self.depth_filter_size = depth_filter_size
         self.track_memory_frames = track_memory_frames
         self.reid_verify_interval = reid_verification_interval
+        self.reid_model_name = reid_model  # Store for status messages
         
         if self.target_class < 0:
             raise ValueError(f"Unknown class name: {threat_id}")
@@ -160,36 +156,36 @@ class DeepReIDTracker:
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
         self.yolo.track(dummy, persist=True, verbose=False)
         
-        # Load Re-ID model
-        print(f"Loading Re-ID model: {reid_model} with {reid_weights}")
-        self.reid_model = torchreid.models.build_model(
-            name=reid_model,
-            num_classes=1000,  # Doesn't matter for feature extraction
-            pretrained=True,
-            loss='softmax'
-        )
+        # Load Re-ID model (ResNet50 from torchvision)
+        print(f"Loading Re-ID model: {reid_model} with {reid_weights} weights")
         
-        # Load pretrained weights if specified
-        if reid_weights and reid_weights != "imagenet":
-            try:
-                # Try to load from torchreid model zoo
-                torchreid.utils.load_pretrained_weights(self.reid_model, reid_weights)
-            except:
-                print(f"Warning: Could not load weights '{reid_weights}', using ImageNet pretrained")
+        # Load pretrained ResNet
+        if reid_model == "resnet50":
+            weights = models.ResNet50_Weights.IMAGENET1K_V2 if reid_weights == "imagenet" else None
+            base_model = models.resnet50(weights=weights)
+        elif reid_model == "resnet101":
+            weights = models.ResNet101_Weights.IMAGENET1K_V2 if reid_weights == "imagenet" else None
+            base_model = models.resnet101(weights=weights)
+        elif reid_model == "resnet152":
+            weights = models.ResNet152_Weights.IMAGENET1K_V2 if reid_weights == "imagenet" else None
+            base_model = models.resnet152(weights=weights)
+        else:
+            raise ValueError(f"Unknown reid_model: {reid_model}")
         
+        # Remove the final classification layer to get feature embeddings
+        # ResNet output before FC layer is 2048D
+        self.reid_model = torch.nn.Sequential(*list(base_model.children())[:-1])
         self.reid_model = self.reid_model.to(self.device)
         self.reid_model.eval()  # Inference mode
         
         # Re-ID preprocessing (standard ImageNet normalization)
-        self.reid_transform_mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(self.device)
-        self.reid_transform_std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(self.device)
-        
-        # Reference embedding
-        self.reference_embedding: Optional[torch.Tensor] = None
-        self.reference_image: Optional[np.ndarray] = None
-        
-        if reference_image_path and Path(reference_image_path).exists():
-            self.load_reference(reference_image_path)
+        self.reid_transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((256, 128)),  # Standard Re-ID input size
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                               std=[0.229, 0.224, 0.225])
+        ])
         
         # Track state management
         self.target_track_id: Optional[int] = None  # The track ID of our target
@@ -250,16 +246,9 @@ class DeepReIDTracker:
             print(f"Reference embedding extracted: shape {self.reference_embedding.shape}")
             return True
         else:
-            print("Error: Failed to extract reference embedding")
-            return False
-    
-    def has_reference(self) -> bool:
-        """Check if reference embedding is set."""
-        return self.reference_embedding is not None
-    
     def _extract_embedding(self, image: np.ndarray) -> Optional[torch.Tensor]:
         """
-        Extract Re-ID embedding from image using deep neural network.
+        Extract Re-ID embedding from image using ResNet50.
         
         This is the core Re-ID operation that converts an image into a 
         discriminative feature vector.
@@ -268,28 +257,32 @@ class DeepReIDTracker:
             image: BGR image (full image or cropped ROI)
             
         Returns:
-            Normalized embedding tensor (512D or 2048D) or None if failed
+            Normalized embedding tensor (2048D) or None if failed
         """
         if image is None or image.size == 0:
             return None
         
         try:
-            # Preprocessing: BGR → RGB, resize to 256x128 (Re-ID standard)
+            # Preprocessing: BGR → RGB
             rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            resized = cv2.resize(rgb, (128, 256))  # Width × Height
             
-            # Convert to tensor: HWC → CHW, normalize to [0, 1]
-            tensor = torch.from_numpy(resized).permute(2, 0, 1).float() / 255.0
-            tensor = tensor.unsqueeze(0).to(self.device)  # Add batch dimension
-            
-            # ImageNet normalization
-            tensor = (tensor - self.reid_transform_mean) / self.reid_transform_std
+            # Apply transforms (resize, normalize)
+            tensor = self.reid_transform(rgb).unsqueeze(0).to(self.device)
             
             # Extract features (no gradient computation)
             with torch.no_grad():
                 features = self.reid_model(tensor)
+                # ResNet output is (batch, 2048, 1, 1), squeeze to (batch, 2048)
+                features = features.squeeze()
             
             # L2 normalization (for cosine similarity)
+            embedding = F.normalize(features, p=2, dim=0)
+            
+            return embedding
+            
+        except Exception as e:
+            print(f"Error extracting embedding: {e}")
+            return Noneization (for cosine similarity)
             embedding = F.normalize(features, p=2, dim=1)
             
             return embedding.squeeze(0)  # Remove batch dimension
@@ -595,7 +588,7 @@ class DeepReIDTracker:
         reid_time = np.mean(self.reid_times) * 1000 if self.reid_times else 0
         
         info_y = debug_img.shape[0] - 70
-        cv2.putText(debug_img, f"Deep Re-ID | {self.threat_id}", 
+        cv2.putText(debug_img, f"Deep Re-ID ({self.reid_model_name}) | {self.threat_id}", 
                    (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(debug_img, f"FPS: {fps:.1f} | Re-ID: {reid_time:.1f}ms", 
                    (10, info_y + 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)

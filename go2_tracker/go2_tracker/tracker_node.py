@@ -31,8 +31,9 @@ from go2_tracker.coco_classes import get_class_id, COCO_CLASSES
 try:
     from go2_tracker.deep_reid_tracker import DeepReIDTracker
     DEEP_REID_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     DEEP_REID_AVAILABLE = False
+    print(f"Deep Re-ID not available: {e}")
 
 
 class ThreatTrackerNode(Node):

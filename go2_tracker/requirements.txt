@@ -8,17 +8,9 @@ numpy>=1.24.0
 # YOLO11 (Ultralytics)
 ultralytics>=8.0.0
 
-# Deep Learning Re-ID
+# Deep Learning Re-ID (using ResNet from torchvision)
 torch>=2.0.0
 torchvision>=0.15.0
-
-# Torchreid - Person/Vehicle Re-Identification Library
-# Provides pre-trained models: OSNet, ResNet, DenseNet, etc.
-torchreid>=2.0.0
-
-# Optional: For better performance
-# scipy>=1.10.0  # Scientific computing
-# pillow>=9.5.0  # Image processing (usually comes with torchvision)
 
 # Note: GPU support requires CUDA-compatible PyTorch installation
 # For GPU: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
