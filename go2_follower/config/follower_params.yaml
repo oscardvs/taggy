@@ -27,11 +27,10 @@ target_follower:
     goal_timeout: 60.0
 
     # Frame for planning (Nav2 uses this frame for goals)
-    target_frame: "map"
+    target_frame: "camera_link"
 
     # -------------------------------------------------------------------------
     # ENABLE/DISABLE
     # -------------------------------------------------------------------------
     # Set to false to disable following without stopping the node
     enable_following: true
-
