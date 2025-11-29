@@ -1,0 +1,38 @@
+# Twist Mux Configuration for Unitree Go2
+# Prioritized velocity command multiplexer
+#
+# Higher priority commands take precedence over lower priority ones.
+# The robot will respond to the highest priority source that is actively publishing.
+#
+# Priority levels:
+#   2 (highest): Visual servo - tracking detected objects
+#   1: Navigation - Nav2 autonomous navigation  
+#   0 (lowest): Teleop - manual control
+#
+# Lock: Emergency stop disables all velocity
+
+twist_mux:
+  ros__parameters:
+    # Topics: name, topic, timeout, priority
+    # Defines velocity input sources
+    topics:
+      navigation:
+        topic: nav_cmd_vel
+        timeout: 0.5
+        priority: 1
+      servo:
+        topic: servo_cmd_vel
+        timeout: 0.2
+        priority: 2
+      teleop:
+        topic: teleop_cmd_vel
+        timeout: 0.5
+        priority: 0
+
+    # Locks: name, topic, timeout, priority
+    # When a lock is active (True published), all velocity is zero
+    locks:
+      e_stop:
+        topic: emergency_stop
+        timeout: 0.0
+        priority: 255

@@ -1,0 +1,30 @@
+# explore_lite Parameters for Unitree Go2
+# Frontier-based autonomous exploration
+
+explore_node:
+  ros__parameters:
+    # Robot frame
+    robot_base_frame: base_link
+
+    # Costmap topic from Nav2
+    costmap_topic: map
+    costmap_updates_topic: map_updates
+
+    # Visualization
+    visualize: true
+    viz_marker_topic: explore/frontiers
+
+    # Frontier detection parameters
+    planner_frequency: 0.33  # How often to replan (Hz) - 3 seconds
+    progress_timeout: 30.0   # Timeout if no progress (seconds)
+    potential_scale: 3.0     # Scale for potential field
+    orientation_scale: 0.0   # Scale for orientation cost (0 = don't care about orientation)
+    gain_scale: 1.0          # Scale for information gain
+
+    # Frontier filtering
+    transform_tolerance: 0.3
+    min_frontier_size: 0.5   # Minimum frontier size in meters
+
+    # Exploration behavior
+    return_to_init: false    # Return to start when done exploring
+

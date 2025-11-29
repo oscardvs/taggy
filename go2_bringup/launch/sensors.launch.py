@@ -159,6 +159,35 @@ def generate_launch_description():
     )
 
     # ============================================================
+    # POINTCLOUD TO LASERSCAN
+    # ============================================================
+    # Convert 3D pointcloud to 2D laser scan for SLAM/Nav
+    # Subscribes: /lidar_points (sensor_msgs/PointCloud2)
+    # Publishes:  /scan (sensor_msgs/LaserScan)
+    # ============================================================
+    pointcloud_to_laserscan_node = Node(
+        package='pointcloud_to_laserscan',
+        executable='pointcloud_to_laserscan_node',
+        name='pointcloud_to_laserscan',
+        remappings=[('cloud_in', '/lidar_points'),
+                    ('scan', '/scan')],
+        parameters=[{
+            'target_frame': 'hesai_lidar',
+            'transform_tolerance': 0.01,
+            'min_height': -0.15,
+            'max_height': 0.15,
+            'angle_min': -3.14159,  # -M_PI
+            'angle_max': 3.14159,   # M_PI
+            'angle_increment': 0.0087,  # M_PI/360.0
+            'scan_time': 0.1,
+            'range_min': 0.2,
+            'range_max': 100.0,
+            'use_inf': True
+        }],
+        condition=IfCondition(LaunchConfiguration('enable_lidar'))
+    )
+
+    # ============================================================
     # RVIZ2 VISUALIZATION (Optional)
     # ============================================================
     # Launch with: enable_rviz:=true
@@ -210,11 +239,12 @@ def generate_launch_description():
         # Sensor nodes
         realsense_node,
         hesai_lidar_node,
+        pointcloud_to_laserscan_node,
         
         # Visualization
         rviz_node,
         
-        # Static transforms
-        # camera_tf,
-        lidar_tf,
+        # Static transforms (required for TF tree)
+        camera_tf,  # base_link -> camera_link (required for perception)
+        lidar_tf,   # base_link -> hesai_lidar (required for SLAM/nav)
     ])

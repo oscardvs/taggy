@@ -1,0 +1,94 @@
+# Vosk Voice Recognition Parameters
+# Configuration for offline speech recognition with the voice_command_node
+
+voice_command_node:
+  ros__parameters:
+    # ============================================================
+    # VOSK MODEL SETTINGS
+    # ============================================================
+    
+    # Path to the Vosk model directory
+    # Download models from: https://alphacephei.com/vosk/models
+    # Recommended: vosk-model-small-en-us-0.15 (~50MB)
+    # Note: Use ~ for home directory (will be expanded by node)
+    # Override with launch argument: model_path:=/path/to/model
+    model_path: '~/vosk-models/vosk-model-small-en-us-0.15'
+    
+    # Sample rate expected by Vosk (most models expect 16kHz)
+    sample_rate: 16000
+
+    # ============================================================
+    # AUDIO INPUT SETTINGS
+    # ============================================================
+    
+    # ROS topic for audio data from Go2 microphone
+    audio_topic: '/audiohub/data'
+    
+    # Go2 microphone audio format
+    input_sample_rate: 16000  # Hz
+    input_channels: 1         # Mono
+    input_sample_width: 2     # 16-bit (2 bytes per sample)
+
+    # ============================================================
+    # VOCABULARY (GRAMMAR CONSTRAINTS)
+    # ============================================================
+    # 
+    # Constrained vocabulary improves recognition accuracy in noisy
+    # environments. The recognizer will only output words from this list.
+    # These should match COCO object detection classes for compatibility
+    # with the perception node.
+    #
+    # Common COCO classes that are practical for search-and-find missions:
+    # NOTE: Names must EXACTLY match YOLOv8 COCO class names!
+    vocabulary:
+      # People
+      - 'person'
+      
+      # Personal items (COCO names)
+      - 'backpack'
+      - 'handbag'
+      - 'suitcase'
+      - 'umbrella'
+      - 'tie'
+      
+      # Electronics (COCO names)
+      - 'laptop'
+      - 'cell phone'      # NOT "phone" - must match COCO
+      - 'remote'
+      - 'keyboard'
+      - 'mouse'
+      - 'tv'
+      
+      # Household items (COCO names)
+      - 'bottle'
+      - 'cup'
+      - 'wine glass'
+      - 'book'
+      - 'chair'
+      - 'couch'
+      - 'clock'
+      - 'vase'
+      - 'scissors'
+      - 'potted plant'
+      
+      # Personal care (COCO names)
+      - 'toothbrush'
+      - 'hair dryer'
+      
+      # Appliances (COCO names)
+      - 'microwave'
+      - 'oven'
+      - 'refrigerator'
+      - 'toaster'
+      - 'sink'
+      
+      # Toys / Misc (COCO names)
+      - 'teddy bear'
+      - 'sports ball'     # NOT "ball" - must match COCO
+      - 'frisbee'
+      
+      # Animals (COCO names)
+      - 'cat'
+      - 'dog'
+      - 'bird'
+
