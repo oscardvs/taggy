@@ -1,6 +1,60 @@
 # Taggy Setup Guide
 
-## 1. Connect to Robot
+> **ROS2 Foxy** | Ubuntu 20.04 | Python 3.8 | **ARM64 (Jetson) supported**
+
+---
+
+## Platform Notes
+
+| Platform | Architecture | Notes |
+|----------|-------------|-------|
+| **Go2 Robot** | ARM64 (Jetson) | Uses JetPack's PyTorch/OpenCV/CUDA |
+| **Laptop/Desktop** | x86_64 | Standard pip installation |
+
+The installer automatically detects architecture and installs appropriate packages.
+
+> **⚠️ Jetson Users**: Do NOT pip install `torch` or `opencv-python` - use the pre-installed JetPack versions!
+
+---
+
+## Quick Install (Recommended)
+
+```bash
+# 1. SSH into Go2 (from laptop connected to Go2 WiFi)
+ssh unitree@192.168.123.18
+# Password: 123
+
+# 2. Clone repository
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+git clone https://github.com/oscardvs/taggy .
+
+# 3. Run automated installer
+cd scripts
+./install.sh
+```
+
+The installer will:
+- Install all ROS2 Foxy dependencies
+- Create Python virtual environment at `~/taggy_venv`
+- Download ML models (YOLO11, Vosk)
+- Build the workspace
+
+After installation, activate the environment:
+
+```bash
+source /opt/ros/foxy/setup.bash
+source ~/taggy_venv/bin/activate
+source ~/ros2_ws/install/setup.bash
+```
+
+---
+
+## Manual Installation (Alternative)
+
+If you prefer manual installation or the automated script fails:
+
+### 1. Connect to Robot
 
 ```bash
 # SSH into Go2 (from laptop connected to Go2 WiFi)
@@ -8,7 +62,7 @@ ssh unitree@192.168.123.18
 # Password: 123
 ```
 
-## 2. Clone Repository
+### 2. Clone Repository
 
 ```bash
 mkdir -p ~/ros2_ws/src
@@ -16,7 +70,7 @@ cd ~/ros2_ws/src
 git clone https://github.com/oscardvs/taggy .
 ```
 
-## 3. System Dependencies
+### 3. System Dependencies
 
 ```bash
 # ROS2 Foxy (if not installed)
@@ -51,17 +105,31 @@ sudo apt install -y ros-foxy-realsense2-camera
 sudo apt install -y portaudio19-dev
 ```
 
-## 4. Python Dependencies
+### 4. Python Virtual Environment & Dependencies
 
 ```bash
-# Voice command (Vosk)
-pip3 install vosk numpy pyaudio
-
-# Tracker (YOLO11)
-pip3 install ultralytics opencv-python
+# Create virtual environment (--system-site-packages needed for Jetson)
+python3 -m venv ~/taggy_venv --system-site-packages
+source ~/taggy_venv/bin/activate
+pip install --upgrade pip setuptools wheel
 ```
 
-## 5. Vosk Model
+**For Jetson (Go2 Robot):**
+```bash
+# Use JetPack's PyTorch/OpenCV - do NOT pip install them!
+pip install numpy PyYAML
+pip install ultralytics --no-deps  # Skip torch dependency
+pip install vosk
+pip install matplotlib pandas seaborn tqdm pillow requests psutil py-cpuinfo
+```
+
+**For Laptop (x86_64):**
+```bash
+pip install -r ~/ros2_ws/src/requirements.txt
+pip install opencv-python opencv-contrib-python
+```
+
+### 5. Vosk Model
 
 ```bash
 mkdir -p ~/vosk-models && cd ~/vosk-models
@@ -69,22 +137,30 @@ wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
 unzip vosk-model-small-en-us-0.15.zip && rm vosk-model-small-en-us-0.15.zip
 ```
 
-## 6. YOLOv8 Model (Perception)
+### 6. YOLO11 Model (Perception & Tracking)
 
 ```bash
 # Create model directory
 sudo mkdir -p /opt/yolo
 sudo chown $USER:$USER /opt/yolo
 
-# Download YOLOv8 Nano model
-wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.onnx -P /opt/yolo/
+# Download YOLO11n via ultralytics (recommended - ensures correct weights)
+python3 -c "
+from ultralytics import YOLO
+model = YOLO('yolo11n.pt')  # Downloads automatically
+model.export(format='onnx', imgsz=640)  # Export to ONNX for TensorRT
+"
 
-# TensorRT engine will be auto-built on first run (~5-10 min)
+# Move models to correct locations
+mv yolo11n.pt ~/ros2_ws/src/
+mv yolo11n.onnx /opt/yolo/
+
+# TensorRT engine will be auto-built from ONNX on first run (~5-10 min)
 ```
 
 > **Note**: TensorRT is pre-installed on Jetson with JetPack. Verify with `dpkg -l | grep tensorrt`
 
-## 7. Build Workspace
+### 7. Build Workspace
 
 ```bash
 cd ~/ros2_ws
@@ -92,6 +168,8 @@ source /opt/ros/foxy/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 ```
+
+---
 
 ## 8. Launch (Step by Step)
 
@@ -125,7 +203,7 @@ source ~/ros2_ws/install/setup.bash
 ros2 launch go2_bringup explore.launch.py
 ```
 
-**Terminal 6: Perception (YOLOv8)**
+**Terminal 6: Perception (TensorRT)**
 ```bash
 source ~/ros2_ws/install/setup.bash
 ros2 launch go2_perception perception.launch.py
