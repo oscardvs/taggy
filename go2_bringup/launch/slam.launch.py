@@ -36,6 +36,18 @@ def generate_launch_description():
     )
 
     # ============================================================
+    # ODOMETRY TO TF BROADCASTER
+    # ============================================================
+    # Subscribes to /lowstate IMU and publishes odom->base_link TF
+    # ============================================================
+    odom_to_tf_node = Node(
+        package='go2_bringup',
+        executable='odom_to_tf.py',
+        name='odom_to_tf',
+        output='screen',
+    )
+
+    # ============================================================
     # SLAM TOOLBOX - Online Async (Lifelong Mapping)
     # ============================================================
     # Provides:
@@ -59,6 +71,9 @@ def generate_launch_description():
     return LaunchDescription([
         # Arguments
         use_sim_time_arg,
+
+        # TF broadcaster (reads from /lowstate IMU)
+        odom_to_tf_node,
 
         # SLAM
         slam_toolbox_node,

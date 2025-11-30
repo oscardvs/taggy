@@ -403,10 +403,10 @@ class TensorRTYolo {
     std::cout << "[TensorRT] Output tensor size: " << output_size_ << std::endl;
 
     // Allocate GPU memory
-    if (cudaMalloc(&input_device_, input_size) != cudaSuccess) {
+    if (cudaMalloc(reinterpret_cast<void**>(&input_device_), input_size) != cudaSuccess) {
       return false;
     }
-    if (cudaMalloc(&output_device_, output_size_ * sizeof(float)) != cudaSuccess) {
+    if (cudaMalloc(reinterpret_cast<void**>(&output_device_), output_size_ * sizeof(float)) != cudaSuccess) {
       cudaFree(input_device_);
       return false;
     }

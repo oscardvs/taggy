@@ -15,4 +15,16 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
+# Install behavior trees
+install(DIRECTORY
+  behavior_trees
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install scripts
+install(PROGRAMS
+  scripts/odom_to_tf.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

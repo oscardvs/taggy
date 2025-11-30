@@ -110,14 +110,17 @@ def generate_launch_description():
         parameters=[{
             'enable_color': True,              # RGB camera stream
             'enable_depth': True,              # Depth from stereo IR
-            'enable_infra1': True,             # Left IR camera
-            'enable_infra2': True,             # Right IR camera  
+            'enable_infra1': False,            # Disabled - not needed, reduces bandwidth
+            'enable_infra2': False,            # Disabled - not needed, reduces bandwidth
             'enable_gyro': True,               # Gyroscope (angular velocity)
             'enable_accel': True,              # Accelerometer (linear acceleration)
             'pointcloud.enable': LaunchConfiguration('enable_pointcloud'),
             'align_depth.enable': True,        # Align depth to color frame
-            'rgb_camera.profile': '640x480x30',
-            'depth_module.profile': '640x480x30',
+            'rgb_camera.profile': '640x480x15',   # Reduced from 30fps to 15fps
+            'depth_module.profile': '640x480x15', # Reduced from 30fps to 15fps
+            # Frame queue sizes to prevent "Out of frame resources" errors
+            'depth_module.frames_queue_size': 2,
+            'rgb_camera.frames_queue_size': 2,
         }],
         output='screen',
         emulate_tty=True,
@@ -172,8 +175,8 @@ def generate_launch_description():
         remappings=[('cloud_in', '/lidar_points'),
                     ('scan', '/scan')],
         parameters=[{
-            'target_frame': 'hesai_lidar',
-            'transform_tolerance': 0.01,
+            'target_frame': 'base_link',
+            'transform_tolerance': 0.5,
             'min_height': -0.15,
             'max_height': 0.15,
             'angle_min': -3.14159,  # -M_PI
@@ -221,12 +224,15 @@ def generate_launch_description():
         arguments=['0.3', '0.0', '0.3', '0', '0', '0', 'base_link', 'camera_link'],
     )
 
-    # LiDAR TF: XT-16 position in IMU coordinate system (no rotation)
+    # LiDAR TF: XT-16 position relative to base_link
+    # Arguments: x y z yaw pitch roll parent_frame child_frame
+    # Yaw -1.5708 (-90 deg) to compensate for +90 deg rotation in odom->base_link
+    # This keeps laser scans aligned with map while base_link shows correct robot orientation
     lidar_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='lidar_tf',
-        arguments=['0.1710', '0.0', '0.0908', '0', '0', '0', 'base_link', 'hesai_lidar'],
+        arguments=['0.0', '0.0', '0.0', '-1.5708', '0', '0', 'base_link', 'hesai_lidar'],
     )
 
     return LaunchDescription([

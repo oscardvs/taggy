@@ -4,6 +4,8 @@ Unitree Go2 Odometry Publisher Node
 Publishes robot odometry from Go2's internal state estimation
 
 EDTH Hackathon Starter Pack by Laelaps AI
+
+Modified: Added +90° yaw correction to align base_link with odom frame
 """
 
 import rclpy
@@ -40,7 +42,13 @@ class Go2Odometry(Node):
         base_frame: Robot base frame ID (default: base_link)
         publish_tf: Whether to publish TF (default: true)
         publish_rate: Publishing rate in Hz (default: 50.0)
+        yaw_correction_deg: Yaw correction in degrees (default: 90.0)
     """
+    
+    # Precomputed correction quaternion for +90° around Z
+    # q = cos(θ/2) + sin(θ/2)*k where θ = π/2
+    YAW_CORRECTION_W = 0.7071067811865476  # cos(45°)
+    YAW_CORRECTION_Z = 0.7071067811865476  # sin(45°)
     
     def __init__(self):
         super().__init__('go2_odometry')
@@ -51,6 +59,7 @@ class Go2Odometry(Node):
         self.declare_parameter('base_frame', 'base_link')
         self.declare_parameter('publish_tf', True)
         self.declare_parameter('publish_rate', 50.0)
+        self.declare_parameter('yaw_correction_deg', 180.0)
         
         # Get parameters
         self.robot_ip = self.get_parameter('robot_ip').value
@@ -58,6 +67,14 @@ class Go2Odometry(Node):
         self.base_frame = self.get_parameter('base_frame').value
         self.publish_tf = self.get_parameter('publish_tf').value
         self.publish_rate = self.get_parameter('publish_rate').value
+        yaw_correction_deg = self.get_parameter('yaw_correction_deg').value
+        
+        # Compute correction quaternion from parameter
+        yaw_rad = math.radians(yaw_correction_deg)
+        self.correction_qw = math.cos(yaw_rad / 2)
+        self.correction_qz = math.sin(yaw_rad / 2)
+        
+        self.get_logger().info(f'Yaw correction: {yaw_correction_deg}° ({yaw_rad:.4f} rad)')
         
         # Initialize Go2 interface
         self.go2 = Go2HighLevelInterface(robot_ip=self.robot_ip)
@@ -90,6 +107,53 @@ class Go2Odometry(Node):
         
         self.get_logger().info('Go2 Odometry node started')
     
+    def _correct_orientation(self, qw, qx, qy, qz):
+        """
+        Apply yaw correction using quaternion multiplication.
+        
+        Corrects the -90° offset between Go2's internal frame and ROS convention.
+        Uses: q_corrected = q_robot * q_correction
+        
+        Args:
+            qw, qx, qy, qz: Original quaternion from robot (wxyz order)
+            
+        Returns:
+            Tuple of (qw, qx, qy, qz) corrected quaternion
+        """
+        # Correction quaternion (rotation around Z axis only)
+        cw = self.correction_qw
+        cx = 0.0
+        cy = 0.0
+        cz = self.correction_qz
+        
+        # Quaternion multiplication: q_robot * q_correction
+        # This applies the correction in the robot's local frame
+        new_w = cw * qw - cx * qx - cy * qy - cz * qz
+        new_x = cw * qx + cx * qw + cy * qz - cz * qy
+        new_y = cw * qy - cx * qz + cy * qw + cz * qx
+        new_z = cz * qz + cx * qy - cy * qx + cw * qw
+        
+        return new_w, new_x, new_y, new_z
+    
+    def _correct_velocity(self, vx, vy, yaw_correction_rad):
+        """
+        Rotate velocity vector by yaw correction angle.
+        
+        Args:
+            vx, vy: Original velocities
+            yaw_correction_rad: Correction angle in radians
+            
+        Returns:
+            Tuple of (vx_corrected, vy_corrected)
+        """
+        cos_yaw = math.cos(yaw_correction_rad)
+        sin_yaw = math.sin(yaw_correction_rad)
+        
+        new_vx = vx * cos_yaw - vy * sin_yaw
+        new_vy = vx * sin_yaw + vy * cos_yaw
+        
+        return new_vx, new_vy
+    
     def publish_odometry(self):
         """Publish odometry and TF"""
         now = self.get_clock().now()
@@ -108,20 +172,26 @@ class Go2Odometry(Node):
         odom.header.frame_id = self.odom_frame
         odom.child_frame_id = self.base_frame
         
-        # Position
+        # Position (no correction needed for position)
         odom.pose.pose.position.x = state.x
         odom.pose.pose.position.y = state.y
         odom.pose.pose.position.z = state.z
         
-        # Orientation (quaternion)
-        odom.pose.pose.orientation.w = state.qw
-        odom.pose.pose.orientation.x = state.qx
-        odom.pose.pose.orientation.y = state.qy
-        odom.pose.pose.orientation.z = state.qz
+        # Orientation (quaternion) - apply yaw correction
+        qw, qx, qy, qz = self._correct_orientation(
+            state.qw, state.qx, state.qy, state.qz
+        )
+        odom.pose.pose.orientation.w = qw
+        odom.pose.pose.orientation.x = qx
+        odom.pose.pose.orientation.y = qy
+        odom.pose.pose.orientation.z = qz
         
-        # Velocity (in base_link frame)
-        odom.twist.twist.linear.x = state.vx
-        odom.twist.twist.linear.y = state.vy
+        # Velocity (in base_link frame) - apply rotation correction
+        yaw_rad = math.radians(self.get_parameter('yaw_correction_deg').value)
+        vx_corrected, vy_corrected = self._correct_velocity(state.vx, state.vy, yaw_rad)
+        
+        odom.twist.twist.linear.x = vx_corrected
+        odom.twist.twist.linear.y = vy_corrected
         odom.twist.twist.linear.z = state.vz
         odom.twist.twist.angular.x = state.wx
         odom.twist.twist.angular.y = state.wy
@@ -139,7 +209,7 @@ class Go2Odometry(Node):
         
         # Publish TF
         if self.publish_tf:
-            self._publish_tf(state, stamp)
+            self._publish_tf(qw, qx, qy, qz, state, stamp)
         
         # Publish IMU
         self._publish_imu(state, stamp)
@@ -161,11 +231,12 @@ class Go2Odometry(Node):
         odom.pose.pose.position.y = self.sim_y
         odom.pose.pose.position.z = 0.35  # Approximate Go2 standing height
         
-        # Orientation (quaternion from yaw)
-        odom.pose.pose.orientation.w = math.cos(self.sim_yaw / 2)
+        # Orientation (quaternion from yaw) - apply correction to simulated yaw too
+        corrected_yaw = self.sim_yaw + math.radians(self.get_parameter('yaw_correction_deg').value)
+        odom.pose.pose.orientation.w = math.cos(corrected_yaw / 2)
         odom.pose.pose.orientation.x = 0.0
         odom.pose.pose.orientation.y = 0.0
-        odom.pose.pose.orientation.z = math.sin(self.sim_yaw / 2)
+        odom.pose.pose.orientation.z = math.sin(corrected_yaw / 2)
         
         # Zero velocity
         odom.twist.twist.linear.x = 0.0
@@ -187,8 +258,8 @@ class Go2Odometry(Node):
             t.transform.rotation = odom.pose.pose.orientation
             self.tf_broadcaster.sendTransform(t)
     
-    def _publish_tf(self, state: RobotState, stamp):
-        """Publish odom -> base_link TF"""
+    def _publish_tf(self, qw, qx, qy, qz, state: RobotState, stamp):
+        """Publish odom -> base_link TF with corrected orientation"""
         t = TransformStamped()
         t.header.stamp = stamp.to_msg()
         t.header.frame_id = self.odom_frame
@@ -198,31 +269,35 @@ class Go2Odometry(Node):
         t.transform.translation.y = state.y
         t.transform.translation.z = state.z
         
-        t.transform.rotation.w = state.qw
-        t.transform.rotation.x = state.qx
-        t.transform.rotation.y = state.qy
-        t.transform.rotation.z = state.qz
+        # Use already-corrected quaternion
+        t.transform.rotation.w = qw
+        t.transform.rotation.x = qx
+        t.transform.rotation.y = qy
+        t.transform.rotation.z = qz
         
         self.tf_broadcaster.sendTransform(t)
     
     def _publish_imu(self, state: RobotState, stamp):
-        """Publish IMU data"""
+        """Publish IMU data with corrected orientation"""
         imu = Imu()
         imu.header.stamp = stamp.to_msg()
         imu.header.frame_id = self.base_frame
         
-        # Orientation
-        imu.orientation.w = state.qw
-        imu.orientation.x = state.qx
-        imu.orientation.y = state.qy
-        imu.orientation.z = state.qz
+        # Orientation - apply correction
+        qw, qx, qy, qz = self._correct_orientation(
+            state.qw, state.qx, state.qy, state.qz
+        )
+        imu.orientation.w = qw
+        imu.orientation.x = qx
+        imu.orientation.y = qy
+        imu.orientation.z = qz
         
-        # Angular velocity
+        # Angular velocity (no correction needed - already in body frame)
         imu.angular_velocity.x = state.imu_gyro_x
         imu.angular_velocity.y = state.imu_gyro_y
         imu.angular_velocity.z = state.imu_gyro_z
         
-        # Linear acceleration
+        # Linear acceleration (no correction needed - already in body frame)
         imu.linear_acceleration.x = state.imu_acc_x
         imu.linear_acceleration.y = state.imu_acc_y
         imu.linear_acceleration.z = state.imu_acc_z
@@ -251,4 +326,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-

@@ -124,7 +124,8 @@ class ThreatTrackerNode(Node):
             CameraInfo, camera_info_topic, self._camera_info_callback, sensor_qos)
         
         # Publishers
-        self.pose_pub = self.create_publisher(PoseStamped, '/tracked_object/pose', 10)
+        #self.pose_pub = self.create_publisher(PoseStamped, '/tracked_object/pose', 10)
+        self.pose_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
         self.status_pub = self.create_publisher(String, '/tracked_object/status', 10)
         
         if self.publish_debug:
