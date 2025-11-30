@@ -59,7 +59,7 @@ class Go2Odometry(Node):
         self.declare_parameter('base_frame', 'base_link')
         self.declare_parameter('publish_tf', True)
         self.declare_parameter('publish_rate', 50.0)
-        self.declare_parameter('yaw_correction_deg', 180.0)
+        self.declare_parameter('yaw_correction_deg', 90.0)
         
         # Get parameters
         self.robot_ip = self.get_parameter('robot_ip').value

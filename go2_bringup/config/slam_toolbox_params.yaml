@@ -13,7 +13,13 @@ slam_toolbox:
     scan_topic: /scan
 
     # Basic operation mode
-    mode: mapping
+    mode: localization
+
+    map_start_at_dock: false
+
+    
+    map_file_name: "/home/unitree/taggy_ws/map_serial_folder/map_serial"
+
 
     # Map basics
     resolution: 0.05

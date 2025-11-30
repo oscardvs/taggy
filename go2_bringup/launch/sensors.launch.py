@@ -232,7 +232,7 @@ def generate_launch_description():
         package='tf2_ros',
         executable='static_transform_publisher',
         name='lidar_tf',
-        arguments=['0.0', '0.0', '0.0', '-1.5708', '0', '0', 'base_link', 'hesai_lidar'],
+        arguments=['0.0', '0.0', '0.0', '0', '0', '1.5708', 'base_link', 'hesai_lidar'],
     )
 
     return LaunchDescription([

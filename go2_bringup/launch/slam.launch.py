@@ -21,10 +21,10 @@ import os
 
 def generate_launch_description():
     # Get package directory
-    go2_bringup_dir = get_package_share_directory('go2_bringup')
+    #go2_bringup_dir = get_package_share_directory('go2_bringup')
 
     # Config file path
-    slam_params_file = os.path.join(go2_bringup_dir, 'config', 'slam_toolbox_params.yaml')
+    slam_params_file = "/home/unitree/taggy_ws/src/taggy/go2_bringup/config/slam_toolbox_params.yaml"
 
     # ============================================================
     # LAUNCH ARGUMENTS
