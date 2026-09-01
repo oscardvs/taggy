@@ -1,29 +1,46 @@
-# EDTH Hackathon - Unitree Go2 ROS2 Starter Pack
+# Taggy
 
-**Organized by Laelaps AI**
+Taggy is a patrol robot prototype on a Unitree Go2 quadruped. It was built in 48 hours
+at the European Defense Tech Hackathon (EDTH) in Zurich, organised by Laelaps AI, in
+November 2025. The goal was a quadruped that patrols an area and autonomously detects
+and tracks targets.
 
-ROS2 Foxy starter pack for the EDTH Defense Tech Hackathon.
+This repository is the ROS 2 workspace as it stood at the end of the hackathon. It holds
+the Laelaps AI Go2 starter pack (velocity and posture control, sensor bringup, keyboard
+teleop, Unitree message definitions), the vendored Hesai LiDAR driver, and a Gazebo
+simulation package added during the event.
 
----
+## Status
 
+Hackathon prototype, November 2025. Not maintained. Only the robot bringup, control, and
+simulation packages are in this repository; there is no perception or navigation code
+here.
 
-## 📦 Package Overview
+## Hardware
+
+- Unitree Go2 quadruped, commanded through the Unitree Sport API (`/api/sport/request`),
+  which is handled by the robot's onboard `sport_mode` service
+- Intel RealSense D435i camera (RGB, depth, point cloud, IMU)
+- Hesai XT16 LiDAR (360-degree point cloud at about 10 Hz, built-in IMU)
+
+Software: ROS 2 Foxy.
+
+## Packages
 
 ```
-src/
-├── go2_bringup/        # Launch files and sensor configs
-├── go2_control/        # C++ velocity control node (SportClient API)
-├── go2_interfaces/     # Python utilities and message types
-├── go2_examples/       # Keyboard teleop for testing
-├── unitree_api/        # Unitree ROS2 message definitions
-└── unitree_go/         # Unitree Go2 message definitions
+go2_bringup/          Launch files and sensor configs
+go2_control/          C++ velocity control node (SportClient API)
+go2_interfaces/       Python utilities and message types
+go2_examples/         Keyboard teleop for testing
+go2_simulation/       Gazebo world (coworking.sdf) and launch file
+unitree_api/          Unitree ROS 2 message definitions
+unitree_go/           Unitree Go2 message definitions
+HesaiLidar_ROS_2.0/   Hesai LiDAR ROS 2 driver (vendored)
 ```
 
----
+## Quick start
 
-## 🚀 Quick Start
-
-### 1. Build the Workspace
+### 1. Build the workspace
 
 ```bash
 cd ~/robot_ws/EDTH-ros2-starterpack
@@ -31,14 +48,14 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-### 2. Launch Robot Control
+### 2. Launch robot control
 
 ```bash
 # Start the velocity control node
 ros2 launch go2_bringup go2_control.launch.py
 ```
 
-### 3. Launch Sensors
+### 3. Launch sensors
 
 ```bash
 # Launch both camera and LiDAR
@@ -54,13 +71,18 @@ ros2 launch go2_bringup sensors.launch.py enable_camera:=false
 ros2 launch go2_bringup sensors.launch.py enable_rviz:=true
 ```
 
-### 4. Test with Keyboard Control
+`full_bringup.launch.py` starts sensors and control together and takes `robot_ip:=`
+(default `192.168.123.161`):
+
+```bash
+ros2 launch go2_bringup full_bringup.launch.py
+```
+
+### 4. Keyboard teleop
 
 ```bash
 ros2 run go2_examples keyboard_teleop
 ```
-
-**Keyboard Controls:**
 
 | Key | Action |
 |-----|--------|
@@ -74,15 +96,13 @@ ros2 run go2_examples keyboard_teleop
 | `5` | Hello (wave) |
 | `+/-` | Increase / Decrease speed |
 | `SPACE` | Stop movement |
-| `X` | Emergency Stop (disables motors!) |
+| `X` | Emergency Stop (disables motors) |
 | `R` | Release emergency stop |
 | `ESC` | Quit |
 
----
+## Robot control
 
-## 🎮 Robot Control
-
-### Velocity Commands
+### Velocity commands
 
 Send velocity commands to `/cmd_vel`:
 
@@ -97,11 +117,11 @@ cmd.angular.z = 0.3  # Rotation (rad/s), positive = counter-clockwise
 publisher.publish(cmd)
 ```
 
-**Velocity Limits:**
-- Linear velocity: ±1.0 m/s (recommended: start with 0.3 m/s)
+Velocity limits:
+- Linear velocity: ±1.0 m/s (start with 0.3 m/s)
 - Angular velocity: ±1.0 rad/s
 
-### Posture Commands
+### Posture commands
 
 Send posture commands to `/cmd_posture`:
 
@@ -122,27 +142,25 @@ ros2 topic pub /cmd_posture std_msgs/String "data: 'recovery'" --once
 ros2 topic pub /cmd_posture std_msgs/String "data: 'hello'" --once
 ```
 
-**Available posture commands:** `up`, `down`, `balance`, `recovery`, `sit`, `hello`, `stretch`, `stop`
+Available posture commands: `up`, `down`, `balance`, `recovery`, `sit`, `hello`, `stretch`, `stop`
 
-### Emergency Stop
+### Emergency stop
 
 ```bash
-# Activate emergency stop (disables motors!)
+# Activate emergency stop (disables motors)
 ros2 topic pub /emergency_stop std_msgs/Bool "data: true" --once
 
 # Release emergency stop
 ros2 topic pub /emergency_stop std_msgs/Bool "data: false" --once
 ```
 
----
+## ROS 2 topics
 
-## 📡 ROS2 Topics
-
-### Control Topics
+### Control topics
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/cmd_vel` | `geometry_msgs/Twist` | **Velocity commands (PUBLISH HERE)** |
+| `/cmd_vel` | `geometry_msgs/Twist` | Velocity commands (publish here) |
 | `/cmd_posture` | `std_msgs/String` | Posture commands (up/down/balance/recovery) |
 | `/emergency_stop` | `std_msgs/Bool` | Emergency stop trigger |
 | `/api/sport/request` | `unitree_api/Request` | Raw Unitree API commands |
@@ -163,7 +181,7 @@ ros2 topic pub /emergency_stop std_msgs/Bool "data: false" --once
 | `/lidar_points` | `sensor_msgs/PointCloud2` | 3D point cloud (360°, ~300k points @ 10Hz) |
 | `/lidar_imu` | `sensor_msgs/Imu` | LiDAR built-in IMU |
 
-### TF Frames
+### TF frames
 
 ```
 base_link
@@ -172,9 +190,7 @@ base_link
  └── hesai_lidar
 ```
 
----
-
-## 🐍 Python Example
+## Python example
 
 ```python
 #!/usr/bin/env python3
@@ -237,10 +253,7 @@ if __name__ == '__main__':
     main()
 ```
 
----
-
-
-## 📁 Creating Your Package
+## Creating a package
 
 ```bash
 cd ~/robot_ws/EDTH-ros2-starterpack/src
@@ -254,21 +267,28 @@ colcon build --packages-select my_package
 source install/setup.bash
 ```
 
----
+## Simulation
 
-## ⚠️ Safety
+`go2_simulation` launches Gazebo with the `coworking.sdf` world:
 
-1. **Always have someone ready to catch the robot**
-2. **Start with low speeds** (0.2-0.3 m/s)
-3. **Test in open areas first**
-4. **Know the emergency stop:**
+```bash
+ros2 launch go2_simulation gazebo_sim.launch.py
+```
+
+The robot spawn in `gazebo_sim.launch.py` is commented out, so this currently opens the
+world without a robot model.
+
+## Safety
+
+1. Have someone ready to catch the robot.
+2. Start with low speeds (0.2-0.3 m/s).
+3. Test in open areas first.
+4. Know the emergency stop:
    ```bash
    ros2 topic pub /emergency_stop std_msgs/Bool "data: true" --once
    ```
 
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────┐     ┌──────────────────────┐
@@ -292,16 +312,20 @@ source install/setup.bash
 └─────────────────────────────────────────────────────┘
 ```
 
----
+## Credits
 
-## 📚 Resources
+- The starter pack (control node, launch files, interface scripts, keyboard teleop, and
+  the original README this one is based on) was written by Laelaps AI, who organised the
+  hackathon.
+- The Gazebo simulation package was added by Manolis Efthymiou.
+- The repository was set up by Oscar Devos (initial import and build fixes).
+- `unitree_api` and `unitree_go` are Unitree's message definitions. `HesaiLidar_ROS_2.0`
+  is Hesai Technology's driver, vendored with its own README.
+
+## Resources
 
 - [ROS2 Foxy Documentation](https://docs.ros.org/en/foxy/)
 - [RealSense ROS2](https://github.com/IntelRealSense/realsense-ros)
 - [Hesai LiDAR ROS2 Driver](https://github.com/HesaiTechnology/HesaiLidar_ROS_2.0)
 
----
-
-**Good luck! 🚀**
-
-*Laelaps AI - EDTH Defense Tech Hackathon*
+No license file is included at the root of this repository.
